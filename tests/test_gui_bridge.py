@@ -113,3 +113,44 @@ class BridgeFlowTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GlassControllerTests(unittest.TestCase):
+    def test_confirm_prompt_names_the_device(self):
+        bridge = IcpBridge("http://127.0.0.1:1")
+        seen = []
+        bridge.message.connect(lambda e: e["type"] == "prompt" and seen.append(e))
+        bridge._status("Joining iCloud Keychain will use the passcode of: iPhone 15 (SERIAL1)")
+        bridge._answers.put(True)
+        self.assertTrue(bridge._confirm("Proceed? (y/N) "))
+        self.assertIn("iPhone 15 (SERIAL1)", seen[0]["message"])
+
+    def test_uuid_domains_are_not_shown_as_websites(self):
+        class Cred:
+            def __init__(self, domain, title):
+                self.d = {"domain": domain, "title": title, "username": "", "password": "", "totp": ""}
+
+            def public_dict(self):
+                return dict(self.d)
+
+        class Store:
+            def all(self):
+                return [Cred("7C1380EE-5010-4B03-BAE2-96BDC74C28E1", "Whakoom"), Cred("github.com", "")]
+
+        items = credential_items(Store())
+        self.assertEqual([(i["name"], i["site"]) for i in items], [("github.com", "github.com"), ("Whakoom", "")])
+
+    def test_debug_log_collapses_repeats_and_answer_validates_codes(self):
+        from icp.gui.glass import Controller
+        with mock.patch("icp.gui.bridge.IcpBridge.load_vault", return_value=[]):
+            controller = Controller("http://127.0.0.1:1")
+        controller._append_log("warning", "keyring unavailable")
+        controller._append_log("warning", "keyring unavailable")
+        self.assertEqual(controller.log[-1]["text"], "keyring unavailable  (×2)")
+        controller._prompt = {"kind": "code", "message": "", "devices": []}
+        with mock.patch.object(controller.bridge, "respond") as respond:
+            controller.answer("12 34")
+            respond.assert_not_called()
+            self.assertIn("six digits", controller.error)
+            controller.answer("123 456")
+            respond.assert_called_once_with("code", "123456")

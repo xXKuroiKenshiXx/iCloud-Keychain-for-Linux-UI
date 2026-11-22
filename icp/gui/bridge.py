@@ -17,6 +17,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 
 DEFAULT_ANISETTE_URL = "http://127.0.0.1:6969"
 _CHOICE_LINE = re.compile(r"^\s*(\d+)\)\s+(.+?)\s*$")
+_HOST = re.compile(r"^(?=.*[a-z])[a-z0-9-]+(\.[a-z0-9-]+)+$", re.IGNORECASE)
 
 
 class Cancelled(Exception):
@@ -42,8 +43,11 @@ def credential_items(store) -> list[dict]:
     items = []
     for credential in store.all():
         data = credential.public_dict()
-        data["name"] = data.get("title") or data.get("domain") or ""
+        domain = str(data.get("domain") or "")
+        data["site"] = domain if _HOST.match(domain) else ""
+        data["name"] = data.get("title") or data["site"] or domain or "Untitled"
         items.append(data)
+    items.sort(key=lambda item: str(item["name"]).casefold())
     return items
 
 
@@ -58,6 +62,7 @@ class IcpBridge(QObject):
         self._answers: queue.Queue = queue.Queue()
         self._thread: threading.Thread | None = None
         self._choices: list[dict] = []
+        self._recent: list[str] = []
         self._username = ""
         self._password = ""
 
@@ -100,6 +105,7 @@ class IcpBridge(QObject):
         while not self._answers.empty():
             self._answers.get_nowait()
         self._choices = []
+        self._recent = []
         self._thread = threading.Thread(target=self._guarded, args=(job,), daemon=True)
         self._thread.start()
 
@@ -129,6 +135,7 @@ class IcpBridge(QObject):
 
     def _status(self, msg: str) -> None:
         if msg:
+            self._recent = (self._recent + [str(msg)])[-4:]
             self.message.emit({"type": "status", "message": str(msg)})
 
     def _step(self, msg: str) -> None:
@@ -152,11 +159,14 @@ class IcpBridge(QObject):
             password, self._password = self._password, ""
             return password
         devices, self._choices = self._choices, []
+        self._recent = []
         self.message.emit({"type": "prompt", "kind": kind, "message": msg.strip(), "devices": devices})
         return str(self._wait())
 
     def _confirm(self, msg: str) -> bool:
-        self.message.emit({"type": "prompt", "kind": "confirm", "message": msg.strip(), "devices": []})
+        context, self._recent = self._recent, []
+        detail = "\n".join(context + [msg.strip()])
+        self.message.emit({"type": "prompt", "kind": "confirm", "message": detail, "devices": []})
         return bool(self._wait())
 
     def _login(self) -> int:

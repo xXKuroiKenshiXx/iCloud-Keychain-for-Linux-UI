@@ -41,9 +41,11 @@ source .venv/bin/activate
 
 ## Desktop app (Qt)
 
-This fork adds a Qt 6 window for everything `icp` does in the terminal: sign-in, the 2FA
-code, choosing the escrow device, the irreversible passcode step, browsing passwords with
-their verification codes, and syncing.
+This fork adds a Qt Quick window in a Liquid Glass style for everything `icp` does in the
+terminal: sign-in, the 2FA code, choosing the escrow device, the irreversible passcode step
+(which names the device whose passcode you need), browsing passwords with live verification
+codes, and syncing. **Settings** includes a debug console that shows each engine step as it
+happens. `icp-gui --classic` opens the earlier Qt Widgets window.
 
 ```
 .venv/bin/pip install -e '.[gui]'

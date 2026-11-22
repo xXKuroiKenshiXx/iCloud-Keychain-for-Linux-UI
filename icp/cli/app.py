@@ -844,7 +844,7 @@ def cmd_logout(args) -> int:
 def cmd_gui(args) -> int:
     """Opens the Qt window; it runs the same login, join, and sync code as the CLI."""
     try:
-        from ..gui.window import main as gui_main
+        from ..gui.glass import main as gui_main
     except ImportError as e:
         ui.err(f"the GUI needs PyQt6 ({e}); install it with: pip install -e '.[gui]'")
         return 2
