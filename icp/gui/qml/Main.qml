@@ -45,6 +45,15 @@ ApplicationWindow {
     }
 
     onSelectedChanged: list.syncCurrent()
+    // A selection that is no longer in the visible list (another section, a search) is cleared.
+    onVisibleItemsChanged: {
+        if (!selected) return
+        for (var i = 0; i < visibleItems.length; i++) {
+            var it = visibleItems[i]
+            if (it.iconKey === selected.iconKey && it.username === selected.username && it.name === selected.name) return
+        }
+        selected = null
+    }
 
     Connections {
         target: icp

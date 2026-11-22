@@ -1,18 +1,26 @@
 <p align="center">
-  <img src="icp/gui/qml/icon.svg" width="96" alt="iCloud Keychain for Linux UI icon">
+  <img src="icp/gui/qml/icon-dark.svg" width="96" alt="iCloud Keychain for Linux UI">
 </p>
 
 <h1 align="center">iCloud Keychain for Linux UI</h1>
 
 <p align="center">
   Your iCloud Passwords on Linux, in a Liquid Glass desktop app.<br>
-  A fork of <a href="https://github.com/Sank6/iCloud-Keychain-for-Linux">Sank6/iCloud-Keychain-for-Linux</a> that adds a Qt Quick interface to its <code>icp</code> engine.
+  Sign in, join your keychain, and browse, copy and autofill your passwords, codes and Wi-Fi networks.<br>
+  A fork of <a href="https://github.com/Sank6/iCloud-Keychain-for-Linux">Sank6/iCloud-Keychain-for-Linux</a> with a Qt Quick interface for its <code>icp</code> engine.
 </p>
 
-<p align="center"><b>English</b> · <a href="README.es.md">Español</a></p>
+<p align="center">
+  <a href="https://github.com/xXKuroiKenshiXx/iCloud-Keychain-for-Linux-UI/releases/latest"><b>Download</b></a> ·
+  <a href="README.es.md"><b>Español</b></a>
+</p>
 
 <p align="center">
-  <img src="docs/screenshots/vault.png" width="820" alt="Password list and detail with website icons">
+  <a href="docs/demo.mp4"><img src="docs/demo.webp" width="860" alt="Signing in, browsing passwords, a Wi-Fi QR code, light and dark mode, and Settings"></a>
+</p>
+
+<p align="center">
+  <sub>Real recording of the app with made-up data · <a href="docs/demo.mp4">watch as MP4</a></sub>
 </p>
 
 **Unofficial** client for iCloud Keychain. Sign in with your Apple ID and
@@ -90,10 +98,6 @@ The configured URL must return anisette headers as JSON to a `GET` request. Its
 
 ## Using the app
 
-<p align="center">
-  <img src="docs/screenshots/confirm.png" width="410" alt="Keychain join confirmation naming the device">
-  <img src="docs/screenshots/settings.png" width="410" alt="Settings with the debug console">
-</p>
 
 Open the AppImage (or `icp-gui` from source) and go to **Apple Account**:
 

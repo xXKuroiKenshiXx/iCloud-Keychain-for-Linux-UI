@@ -1,18 +1,26 @@
 <p align="center">
-  <img src="icp/gui/qml/icon.svg" width="96" alt="Ícono de iCloud Keychain for Linux UI">
+  <img src="icp/gui/qml/icon-dark.svg" width="96" alt="iCloud Keychain for Linux UI">
 </p>
 
 <h1 align="center">iCloud Keychain for Linux UI</h1>
 
 <p align="center">
   Tus contraseñas de iCloud en Linux, en una app de escritorio con estilo Liquid Glass.<br>
-  Fork de <a href="https://github.com/Sank6/iCloud-Keychain-for-Linux">Sank6/iCloud-Keychain-for-Linux</a> que agrega una interfaz Qt Quick a su motor <code>icp</code>.
+  Inicia sesión, únete a tu llavero y mira, copia y autocompleta tus contraseñas, códigos y redes Wi-Fi.<br>
+  Fork de <a href="https://github.com/Sank6/iCloud-Keychain-for-Linux">Sank6/iCloud-Keychain-for-Linux</a> con una interfaz Qt Quick para su motor <code>icp</code>.
 </p>
 
-<p align="center"><a href="README.md">English</a> · <b>Español</b></p>
+<p align="center">
+  <a href="https://github.com/xXKuroiKenshiXx/iCloud-Keychain-for-Linux-UI/releases/latest"><b>Descargar</b></a> ·
+  <a href="README.md"><b>English</b></a>
+</p>
 
 <p align="center">
-  <img src="docs/screenshots/vault.png" width="820" alt="Lista de contraseñas con íconos de sitios">
+  <a href="docs/demo.mp4"><img src="docs/demo.webp" width="860" alt="Inicio de sesión, lista de contraseñas, QR de Wi-Fi, modo claro y oscuro, y Ajustes"></a>
+</p>
+
+<p align="center">
+  <sub>Grabación real de la app con datos inventados · <a href="docs/demo.mp4">ver en MP4</a></sub>
 </p>
 
 Cliente **no oficial** del llavero de iCloud. Iniciás sesión con tu cuenta de Apple, la
@@ -90,10 +98,6 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[gui]'
 
 ## Usar la app
 
-<p align="center">
-  <img src="docs/screenshots/confirm.png" width="410" alt="Confirmación antes de unirse al llavero">
-  <img src="docs/screenshots/settings.png" width="410" alt="Ajustes con la consola de depuración">
-</p>
 
 1. **Cuenta:** correo y contraseña de tu cuenta de Apple.
 2. **Código:** el código de seis dígitos que Apple muestra en tu iPhone, iPad o Mac. Solo se
