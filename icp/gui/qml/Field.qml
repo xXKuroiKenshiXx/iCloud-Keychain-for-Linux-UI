@@ -26,7 +26,7 @@ TextField {
         color: Qt.rgba(0, 0.02, 0.08, field.activeFocus ? 0.42 : 0.30)
         border.width: field.activeFocus ? 1.5 : 1
         border.color: field.activeFocus ? "#78b0ff" : Qt.rgba(1, 1, 1, 0.14)
-        Behavior on border.color { ColorAnimation { duration: 160 } }
+        Behavior on border.color { enabled: icp.animations; ColorAnimation { duration: 160 } }
         Icon {
             visible: field.leading !== ""
             name: field.leading

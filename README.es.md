@@ -102,6 +102,14 @@ Después la bóveda se abre sola al iniciar la app y el botón redondo de **sinc
 actualiza. En **Ajustes** están el idioma, los íconos de los sitios y una consola de depuración
 que muestra cada paso del motor.
 
+La barra sobre la lista ordena por sitio web, título, fecha de edición o de creación
+(ascendente o descendente), y su menú **Más** genera una contraseña segura
+(`xxxxxx-xxxxxx-xxxxxx`, con una fuente aleatoria criptográfica) o exporta todas las contraseñas
+a un CSV con las mismas columnas que usa Apple (el archivo queda legible solo por vos). La barra
+lateral puede ser completa, compacta u oculta, y en Ajustes se pueden apagar todas las
+animaciones y efectos. Agregar, editar, eliminar e importar contraseñas todavía no está
+disponible: el motor solo lee el llavero.
+
 ¿Preferís la terminal? Todo se puede hacer también con comandos `icp`: ver
 [docs/CLI.md](docs/CLI.md) (en inglés).
 

@@ -4,6 +4,9 @@ flow, the vault, verification codes, and a live debug log of everything the engi
 from __future__ import annotations
 
 import argparse
+import csv
+import secrets
+import string
 import json
 import logging
 import re
@@ -86,6 +89,35 @@ class _IconProvider(QQuickImageProvider):
         data = store.png(key) if store and key else None
         image = QImage.fromData(data) if data else QImage()
         return image, image.size()
+
+
+SORT_KEYS = ("website", "title", "modified", "created")
+SIDEBAR_MODES = ("full", "compact", "hidden")
+CSV_HEADER = ["Title", "URL", "Username", "Password", "Notes", "OTPAuth"]
+
+
+def generate_password() -> str:
+    """A strong password in Apple's grouped style (xxxxxx-xxxxxx-xxxxxx): 18 random letters and
+    digits from a cryptographic source, with at least one uppercase letter and one digit."""
+    alphabet = "abcdefghijkmnopqrstuvwxyz23456789"
+    chars = [secrets.choice(alphabet) for _ in range(18)]
+    upper, digit = secrets.SystemRandom().sample(range(18), 2)
+    chars[upper] = secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ")
+    chars[digit] = secrets.choice("23456789")
+    text = "".join(chars)
+    return "-".join(text[i:i + 6] for i in (0, 6, 12))
+
+
+def export_rows(items: list[dict]) -> list[list[str]]:
+    """Rows for Apple's Passwords CSV format (Title, URL, Username, Password, Notes, OTPAuth)."""
+    rows = []
+    for item in items:
+        site = item.get("site") or ""
+        rows.append([str(item.get("display") or item.get("name") or ""),
+                     f"https://{site}/" if site else "",
+                     str(item.get("username") or ""), str(item.get("password") or ""),
+                     str(item.get("notes") or ""), str(item.get("totp") or "")])
+    return rows
 
 
 def friendly_error(text: str, anisette_url: str = "", tr=lambda message: message) -> str:
@@ -240,6 +272,69 @@ class Controller(QObject):
         return self._anisette_state
 
     @pyqtProperty(bool, notify=changed)
+    def animations(self):
+        return bool(self._prefs.get("animations", True))
+
+    @pyqtProperty(str, notify=changed)
+    def sortKey(self):
+        value = self._prefs.get("sort", "website")
+        return value if value in SORT_KEYS else "website"
+
+    @pyqtProperty(bool, notify=changed)
+    def sortDescending(self):
+        return bool(self._prefs.get("sort_desc", False))
+
+    @pyqtProperty(str, notify=changed)
+    def sidebarMode(self):
+        value = self._prefs.get("sidebar", "full")
+        return value if value in SIDEBAR_MODES else "full"
+
+    @pyqtSlot(bool)
+    def setAnimations(self, enabled: bool) -> None:
+        self._prefs["animations"] = bool(enabled)
+        self._write_prefs()
+        self.changed.emit()
+
+    @pyqtSlot(str, bool)
+    def setSort(self, key: str, descending: bool) -> None:
+        self._prefs["sort"] = key if key in SORT_KEYS else "website"
+        self._prefs["sort_desc"] = bool(descending)
+        self._write_prefs()
+        self.changed.emit()
+        self._publish()
+
+    @pyqtSlot(str)
+    def setSidebarMode(self, mode: str) -> None:
+        self._prefs["sidebar"] = mode if mode in SIDEBAR_MODES else "full"
+        self._write_prefs()
+        self.changed.emit()
+
+    @pyqtSlot(result=str)
+    def generatePassword(self) -> str:
+        return generate_password()
+
+    @pyqtSlot(str, result=bool)
+    def exportCsv(self, file_url: str) -> bool:
+        """Writes every password to a CSV in Apple's format, readable only by this user."""
+        path = QUrl(file_url).toLocalFile() or file_url
+        if not path:
+            return False
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w", newline="", encoding="utf-8") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(CSV_HEADER)
+                writer.writerows(export_rows(self._items))
+            os.chmod(path, 0o600)
+        except OSError as error:
+            self._set(error=self._t("Couldn't export: {error}").format(error=error))
+            self.toast.emit(self._t("Couldn't export: {error}").format(error=error))
+            return False
+        self._append_log("info", f"Exported {len(self._items)} passwords to a CSV file")
+        self.toast.emit(self._t("Exported {n} passwords").format(n=len(self._items)))
+        return True
+
+    @pyqtProperty(bool, notify=changed)
     def fetchIcons(self):
         return bool(self._prefs.get("fetch_icons", True))
 
@@ -365,6 +460,20 @@ class Controller(QObject):
                             "candidates": anisette_setup.find_icloud_dirs()})
         self.setupChanged.emit()
 
+    @pyqtProperty(bool, notify=setupChanged)
+    def canInstallTools(self):
+        return bool(anisette_setup.install_argv(self._setup.get("missing") or []))
+
+    @pyqtSlot()
+    def setupInstallTools(self) -> None:
+        if self._setup.get("phase") in ("running", "tools"):
+            return
+        self._setup.update({"phase": "tools", "error": "", "log": []})
+        self.setupChanged.emit()
+        self._append_log("info", "Installing setup tools with pkexec")
+        anisette_setup.install_tools(list(self._setup.get("missing") or []),
+                                     lambda kind, text: self.setupReport.emit(kind, text))
+
     @pyqtSlot()
     def setupReset(self) -> None:
         self._setup.update({"phase": "idle", "error": "", "log": []})
@@ -418,6 +527,12 @@ class Controller(QObject):
             self._apply_url(anisette_setup.DEFAULT_URL)
             self._append_log("info", "Anisette setup finished")
             self._set(anisette_state=1)
+        elif kind == "tools-done":
+            self._setup.update({"phase": "idle", "error": ""})
+            self.setupRefresh()
+        elif kind == "tools-error":
+            self._setup.update({"phase": "idle", "error": self._t("Couldn't install automatically. Run the command in a terminal instead.")})
+            self._append_log("warning", f"pkexec install failed: {text}")
         elif kind == "error":
             self._setup.update({"phase": "error", "error": text})
             self._append_log("error", f"Anisette setup failed: {text}")
@@ -595,7 +710,18 @@ class Controller(QObject):
             item["display"] = (entry.get("name") if not item.get("title") and entry.get("name") else None) or item["name"]
             item["customIcon"] = bool(entry.get("custom"))
             items.append(item)
-        items.sort(key=lambda i: str(i["display"]).casefold())
+        key = self.sortKey
+        if key == "title":
+            items.sort(key=lambda i: str(i["display"]).casefold())
+        elif key == "modified":
+            items.sort(key=lambda i: float(i.get("mdat") or 0))
+        elif key == "created":
+            items.sort(key=lambda i: float(i.get("cdat") or i.get("mdat") or 0))
+        else:
+            items.sort(key=lambda i: (str(i.get("site") or i["display"]).casefold().removeprefix("www."),
+                                      str(i["display"]).casefold()))
+        if self.sortDescending:
+            items.reverse()
         self._items = items
         self.vaultChanged.emit()
 
@@ -674,7 +800,10 @@ class Controller(QObject):
         with os.fdopen(fd, "w") as handle:
             json.dump({"fetch_icons": bool(self._prefs.get("fetch_icons", True)),
                        "language": self._prefs.get("language", "system"),
-                       "anisette": self._prefs.get("anisette") or {}}, handle)
+                       "anisette": self._prefs.get("anisette") or {},
+                       "animations": bool(self._prefs.get("animations", True)),
+                       "sort": self.sortKey, "sort_desc": self.sortDescending,
+                       "sidebar": self.sidebarMode}, handle)
 
     # ---- helpers -----------------------------------------------------------------------
     def _clear_prompt(self) -> None:

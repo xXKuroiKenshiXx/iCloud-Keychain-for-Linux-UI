@@ -15,7 +15,8 @@ Item {
     property string folder: ""
     property string folderError: ""
     readonly property var st: icp.setup
-    readonly property string step: st.phase === "running" ? "install"
+    readonly property string step: st.phase === "tools" ? "tools"
+                                 : st.phase === "running" ? "install"
                                  : st.phase === "done" ? "done"
                                  : st.phase === "error" ? "error"
                                  : mode === "url" ? "url"
@@ -38,9 +39,9 @@ Item {
 
     implicitHeight: card.implicitHeight
     height: implicitHeight
-    Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+    Behavior on height { enabled: icp.animations; NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
     Component.onCompleted: icp.setupRefresh()
-    onStepChanged: { stepIn.restart(); if (step === "files" && !folder && (st.candidates || []).length) folder = st.candidates[0] }
+    onStepChanged: { if (icp.animations) stepIn.restart(); if (step === "files" && !folder && (st.candidates || []).length) folder = st.candidates[0] }
 
     ParallelAnimation {
         id: stepIn
@@ -122,7 +123,7 @@ Item {
                 text: root.step === "error" ? (root.st.error || "") : root.tt(({
                     "choose": "Apple only accepts sign-ins from devices it recognizes. A small service on this computer creates that device identity. It never sees your Apple Account, password or passwords.",
                     "url": "Enter the address of an anisette service you run, such as anisette-rs or omnisette-server.",
-                    "tools": "These programs are needed once. Run this command in a terminal; it asks for your computer password.",
+                    "tools": "These programs are needed once. Your computer asks for its administrator password in its own window; this app never sees or stores it.",
                     "files": "Apple's libraries can't be downloaded here. Copy the iCloud folder from a Windows computer with iCloud for Windows 15.10.39 (Microsoft Store), then choose it.",
                     "install": "This takes a few minutes. You can leave the window open.",
                     "done": "It starts by itself every time you open the app."
@@ -200,11 +201,26 @@ Item {
                         color: "#d6e4ff"
                     }
                 }
+                GlassButton {
+                    visible: icp.canInstallTools
+                    Layout.fillWidth: true
+                    prominent: true
+                    enabled: root.st.phase !== "tools"
+                    text: root.st.phase === "tools" ? root.tt("Installing the tools…") : root.tt("Install Automatically")
+                    onClicked: icp.setupInstallTools()
+                }
+                Text {
+                    visible: (root.st.error || "") !== ""
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    text: root.st.error || ""
+                    color: "#ffb0b0"; font.pixelSize: 12
+                }
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 10
-                    GlassButton { Layout.fillWidth: true; icon: "copy"; text: root.tt("Copy"); visible: (root.st.command || "") !== ""; onClicked: icp.copy(root.st.command) }
-                    GlassButton { Layout.fillWidth: true; prominent: true; text: root.tt("Check Again"); onClicked: icp.setupRefresh() }
+                    GlassButton { Layout.fillWidth: true; compact: true; icon: "copy"; text: root.tt("Copy Command"); visible: (root.st.command || "") !== ""; onClicked: icp.copy(root.st.command) }
+                    GlassButton { Layout.fillWidth: true; compact: true; text: root.tt("Check Again"); onClicked: icp.setupRefresh() }
                 }
             }
 
@@ -282,7 +298,7 @@ Item {
                         Rectangle {
                             width: 18; height: 18; radius: 9
                             color: installRow.index < installRow.current ? "#5fd68e" : installRow.index === installRow.current ? "#8ec2ff" : Qt.rgba(1, 1, 1, 0.16)
-                            Behavior on color { ColorAnimation { duration: 240 } }
+                            Behavior on color { enabled: icp.animations; ColorAnimation { duration: 240 } }
                             Icon { anchors.centerIn: parent; visible: installRow.index < installRow.current; name: "check"; size: 12; stroke: 2.2; color: "#0b1a10" }
                             SequentialAnimation on opacity {
                                 running: installRow.index === installRow.current
@@ -366,7 +382,7 @@ Item {
         color: optionMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.13) : Qt.rgba(0, 0.02, 0.08, 0.28)
         border.width: 1
         border.color: optionMouse.containsMouse ? "#78b0ff" : Qt.rgba(1, 1, 1, 0.12)
-        Behavior on color { ColorAnimation { duration: 140 } }
+        Behavior on color { enabled: icp.animations; ColorAnimation { duration: 140 } }
         RowLayout {
             anchors.fill: parent
             anchors.margins: 13

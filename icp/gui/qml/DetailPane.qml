@@ -12,7 +12,7 @@ Item {
     signal copyRequested(string text)
     readonly property string shownName: entry ? icp.displayName(entry.iconKey, entry.name, entry.title || "", icp.iconRevision) : ""
 
-    onEntryChanged: { revealed = false; refreshCode(); if (entry) detailIn.restart() }
+    onEntryChanged: { revealed = false; refreshCode(); if (entry && icp.animations) detailIn.restart() }
 
     ParallelAnimation {
         id: detailIn

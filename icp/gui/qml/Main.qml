@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import QtQuick.Dialogs
 
 ApplicationWindow {
     id: win
@@ -55,7 +56,7 @@ ApplicationWindow {
         }
     }
 
-    Backdrop { id: backdrop; anchors.fill: parent }
+    Backdrop { id: backdrop; anchors.fill: parent; reducedMotion: !icp.animations }
 
     // Pointer light shared by every glass panel; it trails the cursor for a liquid feel.
     HoverHandler { id: pointer }
@@ -65,8 +66,8 @@ ApplicationWindow {
         property real px: pointer.point.position.x
         property real py: pointer.point.position.y
         readonly property bool active: pointer.hovered
-        Behavior on px { SmoothedAnimation { velocity: 1600; duration: 260 } }
-        Behavior on py { SmoothedAnimation { velocity: 1600; duration: 260 } }
+        Behavior on px { enabled: icp.animations; SmoothedAnimation { velocity: 1600; duration: 260 } }
+        Behavior on py { enabled: icp.animations; SmoothedAnimation { velocity: 1600; duration: 260 } }
     }
 
     RowLayout {
@@ -80,17 +81,21 @@ ApplicationWindow {
             backdrop: backdrop
             light: light
             revealDelay: 0
-            Layout.preferredWidth: 240
+            readonly property bool compact: icp.sidebarMode === "compact"
+            Layout.preferredWidth: icp.sidebarMode === "full" ? 240 : compact ? 68 : 0
             Layout.fillHeight: true
+            visible: Layout.preferredWidth > 1
+            clip: true
+            Behavior on Layout.preferredWidth { enabled: icp.animations; NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 14
+                anchors.margins: sidebar.compact ? 10 : 14
                 spacing: 4
 
                 RowLayout {
                     Layout.topMargin: 6
-                    Layout.leftMargin: 6
+                    Layout.leftMargin: sidebar.compact ? 2 : 6
                     Layout.bottomMargin: 10
                     spacing: 10
                     Image {
@@ -100,11 +105,12 @@ ApplicationWindow {
                         sourceSize.height: 64
                         smooth: true
                     }
-                    Text { text: icp.tr("Passwords", icp.languageRevision); color: "white"; font.pixelSize: 19; font.weight: Font.Bold }
+                    Text { visible: !sidebar.compact; text: icp.tr("Passwords", icp.languageRevision); color: "white"; font.pixelSize: 19; font.weight: Font.Bold }
                 }
 
                 Field {
                     id: search
+                    visible: !sidebar.compact
                     Layout.fillWidth: true
                     implicitHeight: 36
                     leading: "search"
@@ -124,6 +130,7 @@ ApplicationWindow {
                         required property var modelData
                         Layout.fillWidth: true
                         label: icp.tr(modelData.label, icp.languageRevision)
+                        compact: sidebar.compact
                         icon: modelData.icon
                         badge: icp.items.length ? String(win.count(modelData.key)) : ""
                         active: win.section === modelData.key
@@ -137,6 +144,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     label: icp.signedIn ? icp.tr("Apple Account", icp.languageRevision) : icp.tr("Sign In", icp.languageRevision)
                     icon: "person"
+                    compact: sidebar.compact
                     detail: icp.busy ? "•" : ""
                     active: win.section === "account"
                     onClicked: win.section = "account"
@@ -145,6 +153,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     label: icp.tr("Settings", icp.languageRevision)
                     icon: "sliders"
+                    compact: sidebar.compact
                     active: win.section === "settings"
                     onClicked: win.section = "settings"
                 }
@@ -165,8 +174,8 @@ ApplicationWindow {
                 scale: shown ? 1 : 0.985
                 visible: opacity > 0.01
                 enabled: shown
-                Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
-                Behavior on scale { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+                Behavior on opacity { enabled: icp.animations; NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+                Behavior on scale { enabled: icp.animations; NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
 
                 Glass {
                     backdrop: backdrop
@@ -182,15 +191,65 @@ ApplicationWindow {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            Layout.margins: 10
-                            Text {
-                                text: win.section === "codes" ? icp.tr("Codes", icp.languageRevision) : win.section === "wifi" ? icp.tr("Wi-Fi", icp.languageRevision) : icp.tr("All Passwords", icp.languageRevision)
-                                color: "white"; font.pixelSize: 22; font.weight: Font.Bold
-                                Layout.fillWidth: true
-                                Layout.minimumWidth: 0
-                                elide: Text.ElideRight
-                                fontSizeMode: Text.HorizontalFit
-                                minimumPixelSize: 16
+                            Layout.leftMargin: 6
+                            Layout.rightMargin: 6
+                            Layout.topMargin: 6
+                            spacing: 6
+                            ToolButton {
+                                icon: "sidebar"
+                                tip: icp.tr("Sidebar", icp.languageRevision)
+                                onClicked: icp.setSidebarMode(icp.sidebarMode === "full" ? "compact" : icp.sidebarMode === "compact" ? "hidden" : "full")
+                            }
+                            Item { Layout.fillWidth: true }
+                            ToolButton {
+                                id: sortButton
+                                icon: "sort"
+                                tip: icp.tr("Sort By", icp.languageRevision)
+                                onClicked: sortMenu.open()
+                                GlassMenu {
+                                    id: sortMenu
+                                    objectName: "sortMenu"
+                                    y: sortButton.height + 6
+                                    x: sortButton.width - width
+                                    entries: {
+                                        icp.languageRevision
+                                        var keys = ["website", "title", "modified", "created"]
+                                        var names = ["Website", "Title", "Date Edited", "Date Created"]
+                                        var out = []
+                                        for (var i = 0; i < keys.length; i++)
+                                            out.push({ text: icp.tr(names[i], icp.languageRevision), checked: icp.sortKey === keys[i] })
+                                        out.push({ separator: true })
+                                        out.push({ text: icp.tr("Ascending", icp.languageRevision), checked: !icp.sortDescending })
+                                        out.push({ text: icp.tr("Descending", icp.languageRevision), checked: icp.sortDescending })
+                                        return out
+                                    }
+                                    onPicked: (index) => {
+                                        var keys = ["website", "title", "modified", "created"]
+                                        if (index < 4) icp.setSort(keys[index], icp.sortDescending)
+                                        else if (index === 5) icp.setSort(icp.sortKey, false)
+                                        else if (index === 6) icp.setSort(icp.sortKey, true)
+                                    }
+                                }
+                            }
+                            ToolButton {
+                                id: moreButton
+                                icon: "more"
+                                tip: icp.tr("More", icp.languageRevision)
+                                onClicked: moreMenu.open()
+                                GlassMenu {
+                                    id: moreMenu
+                                    objectName: "moreMenu"
+                                    y: moreButton.height + 6
+                                    x: moreButton.width - width
+                                    entries: [
+                                        { text: icp.tr("Generate Password…", icp.languageRevision), icon: "wand" },
+                                        { text: icp.tr("Export Passwords…", icp.languageRevision), icon: "export", enabled: icp.items.length > 0 }
+                                    ]
+                                    onPicked: (index) => {
+                                        if (index === 0) generator.show()
+                                        else exportWarning.open()
+                                    }
+                                }
                             }
                             GlassButton {
                                 id: syncButton
@@ -210,6 +269,30 @@ ApplicationWindow {
                                 HoverHandler { id: syncHover }
                             }
                         }
+                        Text {
+                            text: win.section === "codes" ? icp.tr("Codes", icp.languageRevision) : win.section === "wifi" ? icp.tr("Wi-Fi", icp.languageRevision) : icp.tr("All Passwords", icp.languageRevision)
+                            color: "white"; font.pixelSize: 22; font.weight: Font.Bold
+                            Layout.fillWidth: true
+                            Layout.leftMargin: 10
+                            Layout.rightMargin: 10
+                            Layout.topMargin: -6
+                            Layout.minimumWidth: 0
+                            elide: Text.ElideRight
+                            fontSizeMode: Text.HorizontalFit
+                            minimumPixelSize: 16
+                        }
+
+                        Field {
+                            visible: icp.sidebarMode !== "full"
+                            Layout.fillWidth: true
+                            Layout.leftMargin: 6
+                            Layout.rightMargin: 6
+                            implicitHeight: 36
+                            leading: "search"
+                            placeholderText: icp.tr("Search", icp.languageRevision)
+                            text: search.text
+                            onTextChanged: if (search.text !== text) search.text = text
+                        }
 
                         ListView {
                             id: list
@@ -223,7 +306,7 @@ ApplicationWindow {
                             cacheBuffer: 240
                             reuseItems: false
                             highlightFollowsCurrentItem: true
-                            highlightMoveDuration: 280
+                            highlightMoveDuration: icp.animations ? 280 : 0
                             highlightMoveVelocity: -1
                             highlightResizeDuration: 0
                             property bool animateRows: true
@@ -253,9 +336,10 @@ ApplicationWindow {
                                 required property int index
                                 readonly property string shownName: icp.displayName(modelData.iconKey, modelData.name, modelData.title || "", icp.iconRevision)
                                 width: ListView.view.width - 8
-                                opacity: list.animateRows ? 0 : 1
-                                transform: Translate { id: rowLift; y: list.animateRows ? 10 : 0 }
-                                Component.onCompleted: { if (list.animateRows) rowIn.start(); icp.requestIcon(modelData.iconKey, modelData.site || "") }
+                                readonly property bool entering: list.animateRows && icp.animations
+                                opacity: entering ? 0 : 1
+                                transform: Translate { id: rowLift; y: rowRoot.entering ? 10 : 0 }
+                                Component.onCompleted: { if (entering) rowIn.start(); icp.requestIcon(modelData.iconKey, modelData.site || "") }
                                 SequentialAnimation {
                                     id: rowIn
                                     PauseAnimation { duration: Math.min(rowRoot.index, 12) * 28 }
@@ -268,7 +352,7 @@ ApplicationWindow {
                                 radius: 12
                                 readonly property bool current: win.selected !== null && win.selected.iconKey === modelData.iconKey && win.selected.username === modelData.username && win.selected.name === modelData.name
                                 color: !current && rowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : "transparent"
-                                Behavior on color { ColorAnimation { duration: 120 } }
+                                Behavior on color { enabled: icp.animations; ColorAnimation { duration: 120 } }
                                 RowLayout {
                                     anchors.fill: parent
                                     anchors.leftMargin: 10
@@ -338,8 +422,8 @@ ApplicationWindow {
                 scale: shown ? 1 : 0.985
                 visible: opacity > 0.01
                 enabled: shown
-                Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
-                Behavior on scale { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+                Behavior on opacity { enabled: icp.animations; NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+                Behavior on scale { enabled: icp.animations; NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                 SignInCard {
                     anchors.centerIn: parent
                     width: Math.min(parent.width - 40, 470)
@@ -358,8 +442,8 @@ ApplicationWindow {
                 scale: shown ? 1 : 0.985
                 visible: opacity > 0.01
                 enabled: shown
-                Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
-                Behavior on scale { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+                Behavior on opacity { enabled: icp.animations; NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+                Behavior on scale { enabled: icp.animations; NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                 Flickable {
                     anchors.fill: parent
                     contentHeight: Math.max(height, setupCard.height + 40)
@@ -388,8 +472,8 @@ ApplicationWindow {
                 scale: shown ? 1 : 0.985
                 visible: opacity > 0.01
                 enabled: shown
-                Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
-                Behavior on scale { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+                Behavior on opacity { enabled: icp.animations; NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+                Behavior on scale { enabled: icp.animations; NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                 backdrop: backdrop
             }
         }
@@ -416,5 +500,104 @@ ApplicationWindow {
             Icon { name: "check"; size: 15; color: "#7ee0a6"; anchors.verticalCenter: parent.verticalCenter }
             Text { text: toast.message; color: "white"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
         }
+    }
+    // ---------------------------------------------------------------- password generator
+    Popup {
+        id: generator
+        objectName: "generator"
+        parent: Overlay.overlay
+        property string value: ""
+        function show() { value = icp.generatePassword(); open() }
+        anchors.centerIn: parent
+        width: 420
+        padding: 24
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.35) }
+        enter: Transition { enabled: icp.animations; NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 180 } }
+        background: Rectangle { radius: 22; color: Qt.rgba(0.07, 0.1, 0.18, 0.97); border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.18) }
+        contentItem: ColumnLayout {
+            spacing: 14
+            RowLayout {
+                spacing: 10
+                Icon { name: "wand"; size: 20; color: "#8ec2ff" }
+                Text { text: icp.tr("Strong Password", icp.languageRevision); color: "white"; font.pixelSize: 18; font.weight: Font.Bold }
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 58
+                radius: 14
+                color: Qt.rgba(0, 0.01, 0.05, 0.55)
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.12)
+                Text {
+                    anchors.centerIn: parent
+                    text: generator.value
+                    font.family: "DejaVu Sans Mono"; font.pixelSize: 19; font.letterSpacing: 0.5
+                    color: "white"
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                GlassButton { Layout.fillWidth: true; icon: "sync"; text: icp.tr("Generate Another", icp.languageRevision); onClicked: generator.value = icp.generatePassword() }
+                GlassButton { Layout.fillWidth: true; prominent: true; icon: "copy"; text: icp.tr("Copy", icp.languageRevision); onClicked: { icp.copy(generator.value); generator.close() } }
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- export
+    Popup {
+        id: exportWarning
+        objectName: "exportWarning"
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 440
+        padding: 24
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.35) }
+        enter: Transition { enabled: icp.animations; NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 180 } }
+        background: Rectangle { radius: 22; color: Qt.rgba(0.07, 0.1, 0.18, 0.97); border.width: 1; border.color: Qt.rgba(1, 0.75, 0.36, 0.4) }
+        contentItem: ColumnLayout {
+            spacing: 14
+            RowLayout {
+                spacing: 10
+                Icon { name: "warn"; size: 20; color: "#ffbe5c" }
+                Text { text: icp.tr("Export Passwords…", icp.languageRevision); color: "white"; font.pixelSize: 18; font.weight: Font.Bold }
+            }
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: icp.tr("Exported passwords aren't encrypted. Anyone who gets the file can read every password in it. Delete it when you're done.", icp.languageRevision)
+                color: "#ffe2b8"; font.pixelSize: 13; lineHeight: 1.2
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                GlassButton { Layout.fillWidth: true; text: icp.tr("Cancel", icp.languageRevision); onClicked: exportWarning.close() }
+                GlassButton { Layout.fillWidth: true; prominent: true; icon: "export"; text: icp.tr("Export…", icp.languageRevision); onClicked: { exportWarning.close(); exportDialog.open() } }
+            }
+        }
+    }
+    FileDialog {
+        id: exportDialog
+        fileMode: FileDialog.SaveFile
+        defaultSuffix: "csv"
+        selectedFile: "file:///" + "Passwords.csv"
+        nameFilters: ["CSV (*.csv)"]
+        onAccepted: icp.exportCsv(selectedFile.toString())
+    }
+
+    component ToolButton: GlassButton {
+        property string tip: ""
+        compact: true
+        implicitWidth: implicitHeight
+        ToolTip.visible: tipHover.hovered && tip !== ""
+        ToolTip.delay: 400
+        ToolTip.text: tip
+        HoverHandler { id: tipHover }
     }
 }

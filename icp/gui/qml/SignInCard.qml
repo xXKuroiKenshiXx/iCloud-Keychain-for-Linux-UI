@@ -36,7 +36,7 @@ Item {
 
     implicitHeight: card.implicitHeight
     height: implicitHeight
-    Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+    Behavior on height { enabled: icp.animations; NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
 
     ParallelAnimation {
         id: stepIn
@@ -45,7 +45,7 @@ Item {
     }
 
     onStepChanged: {
-        stepIn.restart()
+        if (icp.animations) stepIn.restart()
         answerField.text = ""
         if (step === "code" || step === "passcode" || step === "password" || step === "text" || step === "username")
             answerField.forceActiveFocus()
@@ -92,8 +92,8 @@ Item {
                             radius: 4
                             anchors.verticalCenter: parent.verticalCenter
                             color: dot.index < root.stage ? "#5fd68e" : dot.index === root.stage ? "#8ec2ff" : Qt.rgba(1, 1, 1, 0.22)
-                            Behavior on width { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
-                            Behavior on color { ColorAnimation { duration: 260 } }
+                            Behavior on width { enabled: icp.animations; NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+                            Behavior on color { enabled: icp.animations; ColorAnimation { duration: 260 } }
                         }
                         Text {
                             visible: dot.index === root.stage
@@ -265,7 +265,7 @@ Item {
                         color: deviceMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0, 0.02, 0.08, 0.28)
                         border.width: 1
                         border.color: deviceMouse.containsMouse ? "#78b0ff" : Qt.rgba(1, 1, 1, 0.12)
-                        Behavior on color { ColorAnimation { duration: 140 } }
+                        Behavior on color { enabled: icp.animations; ColorAnimation { duration: 140 } }
                         RowLayout {
                             anchors.fill: parent
                             anchors.leftMargin: 14

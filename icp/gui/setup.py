@@ -63,6 +63,49 @@ def install_command(missing: list[str]) -> str:
     return ""
 
 
+INSTALL_ARGS = {
+    "apt": ["apt-get", "install", "-y"],
+    "dnf": ["dnf", "install", "-y"],
+    "pacman": ["pacman", "-S", "--noconfirm", "--needed"],
+    "zypper": ["zypper", "--non-interactive", "install"],
+}
+
+
+def install_argv(missing: list[str]) -> list[str]:
+    """`pkexec <package manager> install …` for the missing tools, or [] when not possible.
+    pkexec asks for the administrator password in the desktop's own dialog; this app never
+    sees or stores it."""
+    if not missing or not shutil.which("pkexec"):
+        return []
+    for manager, (_, names) in PACKAGES.items():
+        if shutil.which(manager):
+            binary = shutil.which(INSTALL_ARGS[manager][0]) or INSTALL_ARGS[manager][0]
+            return ["pkexec", binary, *INSTALL_ARGS[manager][1:], *[names[tool] for tool in missing]]
+    return []
+
+
+def install_tools(missing: list[str], report) -> None:
+    """Runs the pkexec install in a thread; reports "line", then "tools-done" or "tools-error"."""
+    def run():
+        argv = install_argv(missing)
+        if not argv:
+            report("tools-error", "pkexec or a supported package manager is not available")
+            return
+        try:
+            process = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                       stdin=subprocess.DEVNULL, text=True, errors="replace")
+            for line in process.stdout:
+                if line.strip():
+                    report("line", line.rstrip()[:300])
+            code = process.wait()
+        except OSError as error:
+            report("tools-error", str(error))
+            return
+        # 126/127: the user dismissed the password dialog or no authentication agent runs.
+        report("tools-done" if code == 0 else "tools-error", "" if code == 0 else f"exit {code}")
+    threading.Thread(target=run, daemon=True).start()
+
+
 def is_icloud_dir(path: str | Path) -> bool:
     folder = Path(path)
     return folder.is_dir() and all((folder / dll).is_file() for dll in REQUIRED_DLLS)

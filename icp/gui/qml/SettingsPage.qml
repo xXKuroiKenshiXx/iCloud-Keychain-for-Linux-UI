@@ -143,6 +143,36 @@ Glass {
                     }
                 }
                 Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.margins: 14
+                    spacing: 14
+                    Icon { name: "wand"; size: 20; color: "#8ec2ff" }
+                    Text { text: icp.tr("Animations and effects", icp.languageRevision); color: "white"; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                    Toggle { checked: icp.animations; onToggled: (on) => icp.setAnimations(on) }
+                }
+                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.margins: 14
+                    spacing: 14
+                    Icon { name: "sidebar"; size: 20; color: "#8ec2ff" }
+                    Text { text: icp.tr("Sidebar", icp.languageRevision); color: "white"; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                    Row {
+                        spacing: 4
+                        Repeater {
+                            model: [{ key: "full", label: "Full" }, { key: "compact", label: "Compact" }, { key: "hidden", label: "Hidden" }]
+                            delegate: GlassButton {
+                                required property var modelData
+                                compact: true
+                                prominent: icp.sidebarMode === modelData.key
+                                text: icp.tr(modelData.label, icp.languageRevision)
+                                onClicked: icp.setSidebarMode(modelData.key)
+                            }
+                        }
+                    }
+                }
+                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
                 InfoRow { icon: "person"; title: icp.tr("Status", icp.languageRevision); value: icp.busy ? icp.status : (icp.signedIn ? icp.tr("Signed in · {n} passwords", icp.languageRevision).replace("{n}", icp.items.length) : icp.tr("Not signed in", icp.languageRevision)) }
             }
         }
@@ -215,13 +245,13 @@ Glass {
         color: checked ? "#3a8bff" : Qt.rgba(1, 1, 1, 0.16)
         border.width: 1
         border.color: Qt.rgba(1, 1, 1, 0.25)
-        Behavior on color { ColorAnimation { duration: 160 } }
+        Behavior on color { enabled: icp.animations; ColorAnimation { duration: 160 } }
         Rectangle {
             width: 22; height: 22; radius: 11
             y: 3
             x: toggle.checked ? toggle.width - width - 3 : 3
             color: "white"
-            Behavior on x { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+            Behavior on x { enabled: icp.animations; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
         }
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: toggle.toggled(!toggle.checked) }
     }

@@ -192,3 +192,49 @@ class WindowLoadTests(unittest.TestCase):
             self.assertFalse(component.isError(), f"{path.name}: {component.errorString()}")
         for root in engine.rootObjects():
             root.deleteLater()
+
+
+class ToolsTests(unittest.TestCase):
+    def test_generated_passwords_follow_the_grouped_strong_format(self):
+        from icp.gui.glass import generate_password
+        seen = set()
+        for _ in range(200):
+            value = generate_password()
+            self.assertEqual([len(group) for group in value.split("-")], [6, 6, 6])
+            self.assertTrue(any(c.isupper() for c in value) and any(c.isdigit() for c in value))
+            seen.add(value)
+        self.assertEqual(len(seen), 200)
+
+    def test_export_uses_apples_csv_columns_and_private_file_mode(self):
+        import csv as csv_module
+        import tempfile
+        from icp.gui.glass import CSV_HEADER, Controller
+        with mock.patch("icp.gui.bridge.IcpBridge.load_vault", return_value=[]):
+            controller = Controller("http://127.0.0.1:1")
+        controller._items = [{"display": "Example", "site": "example.com", "username": "alex",
+                              "password": 'p,w"q', "notes": "line1\nline2", "totp": ""}]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "out.csv")
+            self.assertTrue(controller.exportCsv(path))
+            with open(path, newline="", encoding="utf-8") as handle:
+                rows = list(csv_module.reader(handle))
+            self.assertEqual(rows[0], CSV_HEADER)
+            self.assertEqual(rows[1], ["Example", "https://example.com/", "alex", 'p,w"q', "line1\nline2", ""])
+            self.assertEqual(oct(os.stat(path).st_mode & 0o777), "0o600")
+
+    def test_sort_options_order_the_list(self):
+        from icp.gui.glass import Controller
+        with mock.patch("icp.gui.bridge.IcpBridge.load_vault", return_value=[]):
+            controller = Controller("http://127.0.0.1:1")
+        controller._write_prefs = lambda: None
+        controller._raw = [
+            {"name": "b.com", "site": "b.com", "title": "", "mdat": 30, "cdat": 1},
+            {"name": "a.com", "site": "a.com", "title": "", "mdat": 10, "cdat": 3},
+            {"name": "c.com", "site": "c.com", "title": "", "mdat": 20, "cdat": 2},
+        ]
+        controller.setSort("website", False)
+        self.assertEqual([i["name"] for i in controller.items], ["a.com", "b.com", "c.com"])
+        controller.setSort("modified", True)
+        self.assertEqual([i["name"] for i in controller.items], ["b.com", "c.com", "a.com"])
+        controller.setSort("created", False)
+        self.assertEqual([i["name"] for i in controller.items], ["b.com", "c.com", "a.com"])

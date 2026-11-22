@@ -110,6 +110,14 @@ an encrypted cache under `~/.config/icp/icons` whose file names do not reveal th
 this off in Settings to keep the window fully offline, or set any login's icon by hand with
 **Change Icon…**.
 
+The toolbar above the list sorts by website, title, date edited, or date created (ascending or
+descending), and its **More** menu generates a strong password (`xxxxxx-xxxxxx-xxxxxx`, from a
+cryptographic random source) or exports every password to a CSV in the same columns Apple
+uses (Title, URL, Username, Password, Notes, OTPAuth; the file is created readable only by
+you). The sidebar can be full, compact, or hidden, and Settings can turn off all animations
+and effects. Adding, editing, deleting, and importing passwords are not available yet: the
+engine only reads the keychain.
+
 Prefer the terminal? Every step is also available as an `icp` command: see
 [docs/CLI.md](docs/CLI.md).
 

@@ -14,9 +14,10 @@ Item {
     property Item light: null             // pointer glow source (Main's `light`)
     property int revealDelay: -1          // >= 0 plays the entrance after that many ms
 
-    opacity: revealDelay < 0 ? 1 : 0
-    transform: Translate { id: lift; y: root.revealDelay < 0 ? 0 : 18 }
-    Component.onCompleted: if (revealDelay >= 0) reveal.start()
+    readonly property bool animate: revealDelay >= 0 && icp.animations
+    opacity: animate ? 0 : 1
+    transform: Translate { id: lift; y: root.animate ? 18 : 0 }
+    Component.onCompleted: if (animate) reveal.start()
 
     SequentialAnimation {
         id: reveal
@@ -100,9 +101,9 @@ Item {
     Shape {
         id: sheen
         anchors.fill: parent
-        visible: root.light !== null
+        visible: root.light !== null && icp.animations
         opacity: root.light && root.light.active ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
+        Behavior on opacity { enabled: icp.animations; NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
         preferredRendererType: Shape.CurveRenderer
         readonly property point spot: root.light ? root.mapFromItem(root.light, root.light.px, root.light.py) : Qt.point(-1000, -1000)
         ShapePath {

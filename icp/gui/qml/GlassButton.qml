@@ -22,7 +22,7 @@ Item {
         anchors.fill: parent
         radius: height / 2
         scale: mouse.pressed ? 0.97 : 1
-        Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+        Behavior on scale { enabled: icp.animations; NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
         gradient: Gradient {
             GradientStop {
                 position: 0

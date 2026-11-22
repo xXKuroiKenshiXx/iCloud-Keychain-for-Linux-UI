@@ -41,7 +41,7 @@ Rectangle {
         cache: true
         visible: root.source !== ""
         opacity: status === Image.Ready ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+        Behavior on opacity { enabled: icp.animations; NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
     }
 
     Text {

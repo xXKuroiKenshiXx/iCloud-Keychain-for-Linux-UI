@@ -35,6 +35,7 @@ class Credential:
     last_used: float = 0.0
     totp: str = ""
     group: str = ""  # Empty for the user's keychain.
+    cdat: float = 0.0  # creation time (unix seconds), 0 if unknown
 
     @property
     def recency(self) -> float:
@@ -44,7 +45,7 @@ class Credential:
         return {"domain": self.domain, "username": self.username,
                 "password": self.password, "title": self.title, "mdat": self.mdat,
                 "notes": self.notes, "last_used": self.last_used, "totp": self.totp,
-                "group": self.group}
+                "group": self.group, "cdat": self.cdat}
 
     def wire_dict(self) -> dict:
         """The extension's view: the `totp` URI is replaced by a code generated now."""
@@ -336,14 +337,14 @@ class CredentialStore:
             if (not domain and not username) or not (username or payload):
                 continue
             logins.append((key, str(domain), str(username), payload, title,
-                           _to_unix(it.get("mdat") or it.get("cdat"))))
+                           _to_unix(it.get("mdat") or it.get("cdat")), _to_unix(it.get("cdat"))))
 
         creds = []
-        for key, domain, username, pw, title, mdat in logins:
+        for key, domain, username, pw, title, mdat, cdat in logins:
             side = sidecars.get(key, {})
             title = _sidecar_text(side.get("title")) or title
             creds.append(Credential(
-                domain=domain, username=username, password=pw, title=title, mdat=mdat,
+                domain=domain, username=username, password=pw, title=title, mdat=mdat, cdat=cdat,
                 notes=_sidecar_text(side.get("notes")),
                 last_used=_sidecar_last_used(side.get("ctxt")),
                 totp=totp_codes.uri_from_sidecar(side.get("totp")),

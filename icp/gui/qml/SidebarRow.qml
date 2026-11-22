@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
 
 Rectangle {
@@ -8,12 +9,13 @@ Rectangle {
     property string badge: ""
     property string detail: ""
     property bool active: false
+    property bool compact: false
     signal clicked()
 
     implicitHeight: 38
     radius: 10
     color: active ? Qt.rgba(1, 1, 1, 0.16) : (mouse.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : "transparent")
-    Behavior on color { ColorAnimation { duration: 120 } }
+    Behavior on color { enabled: icp.animations; ColorAnimation { duration: 120 } }
 
     RowLayout {
         anchors.fill: parent
@@ -22,6 +24,7 @@ Rectangle {
         spacing: 10
         Icon { name: root.icon; size: 17; color: root.active ? "#8ec2ff" : Qt.rgba(0.88, 0.92, 1, 0.8) }
         Text {
+            visible: !root.compact
             text: root.label
             color: "white"
             font.pixelSize: 13 + 1
@@ -41,13 +44,17 @@ Rectangle {
             }
         }
         Text {
-            visible: root.badge !== ""
+            visible: root.badge !== "" && !root.compact
             text: root.badge
             color: Qt.rgba(0.86, 0.9, 1, 0.6)
             font.pixelSize: 12
             font.features: ({ "tnum": 1 })
         }
     }
+
+    ToolTip.visible: root.compact && mouse.containsMouse
+    ToolTip.text: root.label
+    ToolTip.delay: 300
 
     MouseArea {
         id: mouse
