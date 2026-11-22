@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import QtQuick.Dialogs
 
 // Detail of one saved login, laid out like an inset grouped list.
 Item {
@@ -18,6 +19,12 @@ Item {
         interval: 1000; repeat: true
         running: root.visible && !!root.entry && !!root.entry.totp
         onTriggered: root.refreshCode()
+    }
+    FileDialog {
+        id: iconDialog
+        title: "Choose an icon"
+        nameFilters: ["Images (*.png *.jpg *.jpeg *.webp *.ico *.bmp)"]
+        onAccepted: if (root.entry) icp.chooseIcon(root.entry.iconKey, root.entry.display, selectedFile.toString())
     }
     Timer { id: hideTimer; interval: 20000; onTriggered: root.revealed = false }
 
@@ -54,17 +61,28 @@ Item {
 
             RowLayout {
                 spacing: 16
-                Monogram { label: root.entry ? (root.entry.site || root.entry.name) : ""; size: 64 }
+                Monogram { label: root.entry ? root.entry.display : ""; source: root.entry ? (root.entry.icon || "") : ""; size: 64 }
                 ColumnLayout {
-                    spacing: 4
+                    spacing: 6
                     Text {
-                        text: root.entry ? root.entry.name : ""
+                        text: root.entry ? root.entry.display : ""
+                        textFormat: Text.PlainText
                         color: "white"; font.pixelSize: 26; font.weight: Font.Bold
                         elide: Text.ElideRight; Layout.maximumWidth: column.width - 90
+                    }
+                    Row {
+                        spacing: 6
+                        GlassButton { compact: true; text: "Change Icon…"; onClicked: iconDialog.open() }
+                        GlassButton {
+                            compact: true; text: "Reset Icon"
+                            visible: root.entry && root.entry.customIcon
+                            onClicked: icp.resetIcon(root.entry.iconKey, root.entry.site || "")
+                        }
                     }
                     Text {
                         visible: root.entry && root.entry.group
                         text: root.entry ? "Shared group · " + root.entry.group : ""
+                        textFormat: Text.PlainText
                         color: Qt.rgba(0.86, 0.9, 1, 0.6); font.pixelSize: 13
                     }
                 }

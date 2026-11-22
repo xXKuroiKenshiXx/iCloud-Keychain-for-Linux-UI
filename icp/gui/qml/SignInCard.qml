@@ -95,6 +95,7 @@ Item {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
+                textFormat: Text.PlainText
                 color: Qt.rgba(0.88, 0.92, 1, 0.72); font.pixelSize: 13 + 1
                 lineHeight: 1.2
                 text: ({
@@ -183,7 +184,7 @@ Item {
                             anchors.rightMargin: 14
                             spacing: 12
                             Icon { name: /mac/i.test(modelData.name) ? "laptop" : "phone"; size: 20; color: "#8ec2ff" }
-                            Text { text: modelData.name; color: "white"; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                            Text { text: modelData.name; textFormat: Text.PlainText; color: "white"; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
                             Icon { name: "chevron"; size: 16; color: Qt.rgba(1, 1, 1, 0.5) }
                         }
                         MouseArea {

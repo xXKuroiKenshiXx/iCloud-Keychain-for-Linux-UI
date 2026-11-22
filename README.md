@@ -47,6 +47,12 @@ terminal: sign-in, the 2FA code, choosing the escrow device, the irreversible pa
 codes, and syncing. **Settings** includes a debug console that shows each engine step as it
 happens. `icp-gui --classic` opens the earlier Qt Widgets window.
 
+Website icons and names are fetched directly from each saved site (HTTPS only, public
+addresses only, size-limited, re-encoded as PNG) and kept in an encrypted cache under
+`~/.config/icp/icons` whose file names do not reveal the sites. Turn this off in Settings to
+make the window fully offline, or set any login's icon by hand with **Change Icon…**. The QML
+layer itself has no network access.
+
 ```
 .venv/bin/pip install -e '.[gui]'
 icp-gui          # or: icp gui

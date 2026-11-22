@@ -29,6 +29,26 @@ Glass {
                 Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
                 InfoRow { icon: "folder"; title: "Session and vault"; value: icp.dataDir }
                 Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.margins: 14
+                    spacing: 14
+                    Icon { name: "globe"; size: 20; color: "#8ec2ff" }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        Text { text: "Website icons and names"; color: "white"; font.pixelSize: 14 }
+                        Text {
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            text: "Fetched directly from each saved site over HTTPS, never through an icon service, and stored encrypted on this computer."
+                            color: Qt.rgba(0.86, 0.9, 1, 0.6); font.pixelSize: 12
+                        }
+                    }
+                    GlassButton { compact: true; icon: "sync"; text: "Refresh"; enabled: icp.fetchIcons; onClicked: icp.refreshIcons() }
+                    Toggle { checked: icp.fetchIcons; onToggled: (on) => icp.setFetchIcons(on) }
+                }
+                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
                 InfoRow { icon: "person"; title: "Status"; value: icp.busy ? icp.status : (icp.signedIn ? "Signed in · " + icp.items.length + " passwords" : "Not signed in") }
             }
         }
@@ -89,6 +109,27 @@ Glass {
                 }
             }
         }
+    }
+
+    component Toggle: Rectangle {
+        id: toggle
+        property bool checked: false
+        signal toggled(bool on)
+        implicitWidth: 46
+        implicitHeight: 28
+        radius: 14
+        color: checked ? "#3a8bff" : Qt.rgba(1, 1, 1, 0.16)
+        border.width: 1
+        border.color: Qt.rgba(1, 1, 1, 0.25)
+        Behavior on color { ColorAnimation { duration: 160 } }
+        Rectangle {
+            width: 22; height: 22; radius: 11
+            y: 3
+            x: toggle.checked ? toggle.width - width - 3 : 3
+            color: "white"
+            Behavior on x { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+        }
+        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: toggle.toggled(!toggle.checked) }
     }
 
     component InfoRow: RowLayout {

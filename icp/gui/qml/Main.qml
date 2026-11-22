@@ -26,7 +26,7 @@ ApplicationWindow {
         if (section === "all" && isWifi(item)) return false
         if (!query) return true
         var q = query.toLowerCase()
-        return (item.name + " " + item.site + " " + item.username).toLowerCase().indexOf(q) >= 0
+        return (item.display + " " + item.name + " " + item.site + " " + item.username).toLowerCase().indexOf(q) >= 0
     }
     function count(kind) {
         var n = 0
@@ -189,7 +189,7 @@ ApplicationWindow {
                                 width: ListView.view.width - 8
                                 height: 56
                                 radius: 12
-                                readonly property bool current: win.selected === modelData
+                                readonly property bool current: win.selected !== null && win.selected.iconKey === modelData.iconKey && win.selected.username === modelData.username && win.selected.name === modelData.name
                                 color: current ? Qt.rgba(0.45, 0.65, 1, 0.30)
                                                : (rowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : "transparent")
                                 Behavior on color { ColorAnimation { duration: 120 } }
@@ -198,17 +198,19 @@ ApplicationWindow {
                                     anchors.leftMargin: 10
                                     anchors.rightMargin: 12
                                     spacing: 12
-                                    Monogram { label: modelData.site || modelData.name; size: 36 }
+                                    Monogram { label: modelData.display; source: modelData.icon || ""; size: 36 }
                                     ColumnLayout {
                                         Layout.fillWidth: true
                                         spacing: 2
                                         Text {
-                                            text: modelData.name
+                                            text: modelData.display
+                                            textFormat: Text.PlainText
                                             color: "white"; font.pixelSize: 14; font.weight: Font.DemiBold
                                             elide: Text.ElideRight; Layout.fillWidth: true
                                         }
                                         Text {
                                             text: modelData.username || "No user name"
+                                            textFormat: Text.PlainText
                                             color: Qt.rgba(0.86, 0.9, 1, 0.62); font.pixelSize: 12 + 1
                                             elide: Text.ElideRight; Layout.fillWidth: true
                                         }
@@ -230,6 +232,7 @@ ApplicationWindow {
                                 width: parent.width - 40
                                 horizontalAlignment: Text.AlignHCenter
                                 wrapMode: Text.WordWrap
+                                textFormat: Text.PlainText
                                 text: win.query ? "No results for “" + win.query + "”" : "Nothing here yet"
                                 color: Qt.rgba(0.86, 0.9, 1, 0.55); font.pixelSize: 13 + 1
                             }
