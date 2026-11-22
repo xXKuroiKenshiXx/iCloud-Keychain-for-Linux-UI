@@ -174,6 +174,13 @@ Item {
                 onActivated: root.requestSetup()
             }
             Notice {
+                visible: root.step === "signin" && icp.quickSignIn
+                tone: "info"
+                text: icp.tr("Quick sign-in: this computer is still part of your keychain, so only your Apple Account password is needed.", icp.languageRevision)
+                action: icp.tr("Start Over", icp.languageRevision)
+                onActivated: icp.signOut(true)
+            }
+            Notice {
                 visible: root.step === "code"
                 tone: "info"
                 text: icp.tr("No code? Unlock one of your Apple devices and wait a minute with this window open. Asking for codes repeatedly can block sign-in for a while.", icp.languageRevision)
@@ -192,6 +199,7 @@ Item {
                 spacing: 10
                 Field {
                     id: email
+                    text: icp.lastAccount
                     Layout.fillWidth: true
                     placeholderText: icp.tr("Apple Account email or phone", icp.languageRevision)
                     leading: "person"
@@ -311,6 +319,13 @@ Item {
                 GlassButton { Layout.fillWidth: true; icon: "sync"; text: icp.tr("Sync Now", icp.languageRevision); enabled: !icp.busy; onClicked: icp.sync() }
                 GlassButton { Layout.fillWidth: true; prominent: true; text: icp.tr("Show Passwords", icp.languageRevision); onClicked: root.finished() }
             }
+            GlassButton {
+                visible: root.step === "done"
+                Layout.alignment: Qt.AlignHCenter
+                compact: true
+                text: icp.tr("Sign Out…", icp.languageRevision)
+                onClicked: signOutMenu.open()
+            }
 
             GlassButton {
                 visible: root.canCancel
@@ -326,6 +341,59 @@ Item {
                 text: icp.error
             }
         }
+    }
+
+    Popup {
+        id: signOutMenu
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: 460
+        padding: 22
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.35) }
+        enter: Transition { enabled: icp.animations; NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 180 } }
+        background: Rectangle { radius: 22; color: Theme.popup; border.width: 1; border.color: Theme.overlay(0.18) }
+        contentItem: ColumnLayout {
+            spacing: 12
+            Text { text: icp.tr("Sign Out…", icp.languageRevision).replace("…", ""); color: Theme.text; font.pixelSize: 18; font.weight: Font.Bold }
+            SignOutChoice {
+                title: icp.tr("Sign Out", icp.languageRevision)
+                detail: icp.tr("Removes your passwords from this computer. This computer stays in your keychain, so signing in again only needs your Apple Account password.", icp.languageRevision)
+                onPicked: { signOutMenu.close(); icp.signOut(false) }
+            }
+            SignOutChoice {
+                destructive: true
+                title: icp.tr("Sign Out and Remove This Computer", icp.languageRevision)
+                detail: icp.tr("Erases the session, the passwords, the icons and this computer's keychain identity. Signing in again asks for a device passcode.", icp.languageRevision)
+                onPicked: { signOutMenu.close(); icp.signOut(true) }
+            }
+            GlassButton { Layout.alignment: Qt.AlignRight; compact: true; text: icp.tr("Cancel", icp.languageRevision); onClicked: signOutMenu.close() }
+        }
+    }
+
+    component SignOutChoice: Rectangle {
+        id: choice
+        property string title
+        property string detail
+        property bool destructive: false
+        signal picked()
+        Layout.fillWidth: true
+        implicitHeight: choiceColumn.implicitHeight + 24
+        radius: 14
+        color: choiceMouse.containsMouse ? Theme.overlay(0.12) : Theme.inset(0.25)
+        border.width: 1
+        border.color: choiceMouse.containsMouse ? (destructive ? "#ff7a7a" : "#78b0ff") : Theme.overlay(0.12)
+        ColumnLayout {
+            id: choiceColumn
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 4
+            Text { Layout.fillWidth: true; text: choice.title; color: choice.destructive ? Theme.danger : Theme.text; font.pixelSize: 14; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
+            Text { Layout.fillWidth: true; text: choice.detail; color: Theme.secondary(0.7); font.pixelSize: 12; wrapMode: Text.WordWrap; lineHeight: 1.15 }
+        }
+        MouseArea { id: choiceMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: choice.picked() }
     }
 
     component Notice: Rectangle {

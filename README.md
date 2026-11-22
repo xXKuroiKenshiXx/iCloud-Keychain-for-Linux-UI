@@ -53,7 +53,10 @@ the system language and falls back to English; change it under Settings → Lang
 that checks the tools it needs (and shows the one install command for your distribution),
 finds or asks for the `iCloud` folder from iCloud for Windows 15.10.39, downloads the reviewed
 version of Anisette-on-Wine, builds it, registers this computer with Apple, and starts the
-service. From then on the app starts the service by itself. Settings → Anisette service → Set Up…
+service. It can instead build **anisette-rs** natively (a pinned commit, Rust installed through
+rustup when needed, and a fresh random Windows identity kept private on this computer) or run
+**anisette-v3-server** in Podman or Docker (pinned by digest, bound to localhost). From then on
+the app starts the service by itself. Settings → Anisette service → Set Up…
 opens the assistant again, and it also accepts the address of a service you already run.
 
 **The manual way:** run one of these yourself and set `ICP_ANISETTE_URL`:
@@ -101,6 +104,10 @@ Open the AppImage (or `icp-gui` from source) and go to **Apple Account**:
 4. **Passcode:** the passcode you use to unlock that device, not your Apple Account password
    and not the six-digit code. Each wrong passcode uses one of about ten recovery attempts;
    after the last one Apple permanently erases that recovery record. One correct entry is safe.
+
+**Sign Out…** in Apple Account either keeps this computer in your keychain (the next sign-in
+only needs your Apple Account password) or removes it completely (the next sign-in asks for a
+device passcode again). Wi-Fi networks show a QR code another phone can scan to join.
 
 After that the vault opens on start, the round **Sync** button refreshes it, and the window
 also signs in again by itself when the iCloud session expires. **Settings** has the language,

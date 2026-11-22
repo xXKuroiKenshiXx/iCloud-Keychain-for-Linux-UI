@@ -51,7 +51,10 @@ sistema y, si no está disponible, inglés. Se cambia en Ajustes → Idioma.
 asistente que revisa las herramientas necesarias (y te muestra el único comando para instalarlas
 en tu distribución), encuentra o te pide la carpeta `iCloud` de iCloud para Windows 15.10.39,
 descarga la versión revisada de Anisette-on-Wine, la compila, registra la computadora con Apple e
-inicia el servicio. Desde ahí la app lo inicia sola. En Ajustes → Servicio de anisette →
+inicia el servicio. También puede compilar **anisette-rs** de forma nativa (versión fijada,
+Rust instalado con rustup si hace falta y una identidad de Windows aleatoria y privada) o correr
+**anisette-v3-server** en Podman o Docker (imagen fijada, solo en tu PC). Desde ahí la app lo
+inicia sola. En Ajustes → Servicio de anisette →
 Configurar… se vuelve a abrir, y también acepta la dirección de un servicio que ya tengas.
 
 **La forma manual:** ejecutá uno de estos y configurá `ICP_ANISETTE_URL`:
@@ -100,6 +103,10 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[gui]'
    la contraseña de tu cuenta ni el código de seis dígitos. Cada error gasta uno de unos diez
    intentos; con el último, Apple borra para siempre ese registro de recuperación. Una entrada
    correcta es segura.
+
+**Cerrar sesión…** en Cuenta de Apple deja la computadora en tu llavero (el próximo inicio solo
+pide tu contraseña de Apple) o la quita por completo (pedirá de nuevo un código de desbloqueo).
+Las redes Wi-Fi muestran un código QR para conectar otro teléfono.
 
 Después la bóveda se abre sola al iniciar la app y el botón redondo de **sincronizar** la
 actualiza. En **Ajustes** están el idioma, los íconos de los sitios y una consola de depuración

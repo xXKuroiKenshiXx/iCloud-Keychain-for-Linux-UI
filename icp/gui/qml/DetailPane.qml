@@ -155,9 +155,12 @@ Item {
             ColumnLayout {
                 visible: root.entry && root.entry.wifi === true
                 Layout.fillWidth: true
-                spacing: 10
+                Layout.preferredWidth: column.width
+                Layout.topMargin: 6
+                spacing: 16
                 GlassButton {
                     objectName: "qrButton"
+                    Layout.alignment: Qt.AlignHCenter
                     icon: "grid"
                     text: root.qrSource ? icp.tr("Hide QR Code", icp.languageRevision) : icp.tr("Show QR Code", icp.languageRevision)
                     onClicked: {
@@ -165,27 +168,23 @@ Item {
                         else { root.qrSource = icp.wifiQr(root.entry.username || root.entry.name, root.entry.password || ""); qrTimer.restart() }
                     }
                 }
-                RowLayout {
+                Rectangle {
                     visible: root.qrSource !== ""
-                    spacing: 16
-                    Rectangle {
-                        width: 196; height: 196; radius: 18
-                        color: "white"
-                        Image {
-                            anchors.centerIn: parent
-                            width: 176; height: 176
-                            source: root.qrSource
-                            cache: false
-                            smooth: false
-                            fillMode: Image.PreserveAspectFit
-                        }
+                    Layout.alignment: Qt.AlignHCenter
+                    width: 220; height: 220; radius: 20
+                    color: "white"
+                    Image {
+                        anchors.centerIn: parent
+                        width: 196; height: 196
+                        source: root.qrSource
+                        cache: false
+                        smooth: false
+                        fillMode: Image.PreserveAspectFit
                     }
-                    Text {
-                        Layout.preferredWidth: 240
-                        wrapMode: Text.WordWrap
-                        text: icp.tr("Scan with a phone camera to join this network. The code includes the password and hides itself after a minute.", icp.languageRevision)
-                        color: Theme.secondary(0.7); font.pixelSize: 13; lineHeight: 1.2
-                    }
+                    HoverHandler { id: qrHover }
+                    ToolTip.visible: qrHover.hovered
+                    ToolTip.delay: 300
+                    ToolTip.text: icp.tr("Scan with a phone camera to join this network. The code includes the password and hides itself after a minute.", icp.languageRevision)
                 }
             }
 

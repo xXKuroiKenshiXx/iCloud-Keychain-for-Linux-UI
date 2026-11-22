@@ -440,6 +440,65 @@ class Controller(QObject):
             return ""
 
     # ---- actions -----------------------------------------------------------------------
+    # ---- signing out -----------------------------------------------------------------------
+    @pyqtProperty(bool, notify=vaultChanged)
+    def quickSignIn(self):
+        """True when this computer is still a keychain member, so sign-in needs no passcode."""
+        try:
+            from ..auth import session
+            from ..octagon import client as octagon
+            data = session.load() or {}
+            return not data.get("username") and octagon.is_joined(data)
+        except Exception:  # noqa: BLE001
+            return False
+
+    @pyqtProperty(str, notify=vaultChanged)
+    def lastAccount(self):
+        return str(self._prefs.get("last_account") or "")
+
+    @pyqtSlot(bool)
+    def signOut(self, remove_computer: bool) -> None:
+        """Signs out. Without `remove_computer` the keychain membership stays so the next
+        sign-in needs only the Apple Account password; with it everything local is erased."""
+        if self.bridge.busy:
+            return
+        from .. import paths
+        from ..auth import session
+        try:
+            data = session.load() or {}
+        except Exception:  # noqa: BLE001 - an unreadable session is erased below
+            data = {}
+        if data.get("username"):
+            self._prefs["last_account"] = data["username"]
+        if remove_computer:
+            session.clear()
+            for path in (paths.vault_file(), paths.device_file()):
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
+            if self._ensure_store():
+                self.icon_store.clear()
+            self._prefs.pop("last_account", None)
+            self._append_log("info", "Signed out and removed this computer")
+        else:
+            keep = {}
+            if data.get("octagon"):
+                keep["octagon"] = data["octagon"]
+            if (data.get("mme") or {}).get("cloudKitUserId"):
+                keep["mme"] = {"cloudKitUserId": data["mme"]["cloudKitUserId"]}
+            session.save(keep)
+            try:
+                paths.vault_file().unlink()
+            except OSError:
+                pass
+            self._append_log("info", "Signed out; this computer stays in the keychain")
+        self._write_prefs()
+        self._clear_prompt()
+        self._set_items([])
+        self._set(stage="signin", status="", error="")
+        self.toast.emit(self._t("Signed out"))
+
     @pyqtSlot(str, str)
     def signIn(self, email: str, password: str) -> None:
         email = email.strip()
@@ -519,6 +578,16 @@ class Controller(QObject):
     def _autostart_anisette(self) -> None:
         """Starts a local Anisette-on-Wine that is already installed, then checks the service."""
         configured = self._prefs.get("anisette") or {}
+        if configured.get("mode") == "rs" and anisette_setup.find_rs():
+            def start_rs():
+                anisette_setup.start_rs()
+                for _ in range(20):
+                    if anisette_setup.healthy(self.bridge.anisette_url, timeout=1):
+                        break
+                    time.sleep(1)
+                self.anisetteChecked.emit(anisette_setup.healthy(self.bridge.anisette_url, timeout=2))
+            threading.Thread(target=start_rs, daemon=True).start()
+            return
         if configured.get("mode") == "container":
             def start():
                 anisette_setup.autostart_container()
@@ -550,6 +619,13 @@ class Controller(QObject):
 
     @pyqtSlot()
     def setupRefresh(self) -> None:
+        if self._setup.get("kind") == "rs":
+            missing = anisette_setup.rs_missing()
+            self._setup.update({"missing": missing, "command": anisette_setup.install_command(missing)})
+            self.setupChanged.emit()
+            if not missing and self._setup.get("phase") == "idle":
+                self.setupRs()
+            return
         if self._setup.get("kind") == "container":
             missing = [] if anisette_setup.container_runtime() else ["podman"]
             self._setup.update({"missing": missing, "command": anisette_setup.install_command(missing)})
@@ -624,6 +700,21 @@ class Controller(QObject):
         anisette_setup.Installer(icloud_folder, lambda kind, text: self.setupReport.emit(kind, text)).start()
 
     @pyqtSlot()
+    def setupRs(self) -> None:
+        """anisette-rs: native Rust, built at a pinned commit with a fresh private identity."""
+        if self._setup.get("phase") in ("running", "tools"):
+            return
+        missing = anisette_setup.rs_missing()
+        if missing:
+            self._setup.update({"missing": missing, "command": anisette_setup.install_command(missing), "kind": "rs"})
+            self.setupChanged.emit()
+            return
+        self._setup.update({"phase": "running", "kind": "rs", "step": "download", "error": "", "log": []})
+        self.setupChanged.emit()
+        self._append_log("info", "Building anisette-rs")
+        anisette_setup.RsInstaller(lambda kind, text: self.setupReport.emit(kind, text)).start()
+
+    @pyqtSlot()
     def setupContainer(self) -> None:
         """anisette-v3-server in Podman/Docker; asks to install Podman first when neither exists."""
         if self._setup.get("phase") in ("running", "tools"):
@@ -666,7 +757,7 @@ class Controller(QObject):
             self._setup["step"] = text
         elif kind == "done":
             self._setup.update({"phase": "done", "step": "start"})
-            self._prefs["anisette"] = {"mode": "container" if text == "container" else "wine"}
+            self._prefs["anisette"] = {"mode": text if text in ("container", "rs") else "wine"}
             self._write_prefs()
             self._apply_url(anisette_setup.DEFAULT_URL)
             self._append_log("info", "Anisette setup finished")
@@ -964,7 +1055,8 @@ class Controller(QObject):
                        "sort": self.sortKey, "sort_desc": self.sortDescending,
                        "sidebar": self.sidebarStyle,
                        "sidebar_visible": bool(self._prefs.get("sidebar_visible", True)),
-                       "appearance": self.appearance}, handle)
+                       "appearance": self.appearance,
+                       "last_account": str(self._prefs.get("last_account") or "")}, handle)
 
     # ---- helpers -----------------------------------------------------------------------
     def _clear_prompt(self) -> None:

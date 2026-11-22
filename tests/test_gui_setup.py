@@ -70,5 +70,26 @@ class DesktopIntegrationTests(unittest.TestCase):
                 self.assertFalse(setup.is_integrated())
 
 
+
+class AnisetteRsTests(unittest.TestCase):
+    def test_random_hardware_profile_matches_the_expected_fields(self):
+        profile = setup.random_windows_hardware()
+        self.assertEqual(set(profile), {"mac_address", "volume_serial", "product_id", "processor_name",
+                                        "bios_version", "computer_name", "hardware_profile_guid"})
+        self.assertEqual(len(profile["mac_address"]), 6)
+        self.assertEqual(profile["mac_address"][0] & 0x03, 0x02)
+        self.assertNotEqual(setup.random_windows_hardware()["computer_name"], profile["computer_name"])
+
+    def test_missing_rust_is_reported_only_without_rustup(self):
+        with mock.patch.object(setup, "rust_ok", return_value=False), \
+                mock.patch.object(setup, "rustup_path", return_value=""), \
+                mock.patch("shutil.which", side_effect=lambda name: "/usr/bin/" + name if name in ("git", "cc") else None):
+            self.assertEqual(setup.rs_missing(), ["rust"])
+        with mock.patch.object(setup, "rust_ok", return_value=False), \
+                mock.patch.object(setup, "rustup_path", return_value="/usr/bin/rustup"), \
+                mock.patch("shutil.which", side_effect=lambda name: "/usr/bin/" + name if name in ("git", "cc") else None):
+            self.assertEqual(setup.rs_missing(), [])
+
+
 if __name__ == "__main__":
     unittest.main()
