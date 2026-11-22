@@ -22,7 +22,7 @@ ApplicationWindow {
     readonly property bool needsSetup: needsSignIn && icp.anisetteState === 0
     readonly property bool showSetup: section === "setup" || (needsSetup && (vaultSection || section === "account"))
 
-    function isWifi(item) { return /wi-?fi|airport/i.test(item.domain || "") || (!item.site && !item.username && item.title !== "") }
+    function isWifi(item) { return item.wifi === true }
     function matches(item) {
         if (section === "codes" && !item.totp) return false
         if (section === "wifi" && !isWifi(item)) return false
@@ -82,7 +82,7 @@ ApplicationWindow {
             light: light
             revealDelay: 0
             readonly property bool compact: icp.sidebarMode === "compact"
-            Layout.preferredWidth: icp.sidebarMode === "full" ? 240 : compact ? 68 : 0
+            Layout.preferredWidth: icp.sidebarMode === "full" ? 240 : compact ? 64 : 0
             Layout.fillHeight: true
             visible: Layout.preferredWidth > 1
             clip: true
@@ -90,19 +90,20 @@ ApplicationWindow {
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: sidebar.compact ? 10 : 14
+                anchors.margins: sidebar.compact ? 8 : 14
                 spacing: 4
 
                 RowLayout {
                     Layout.topMargin: 6
+                    Layout.fillWidth: sidebar.compact
                     Layout.alignment: sidebar.compact ? Qt.AlignHCenter : Qt.AlignLeft
                     Layout.leftMargin: sidebar.compact ? 0 : 6
                     Layout.bottomMargin: 10
                     spacing: 10
                     Image {
                         Layout.alignment: Qt.AlignHCenter
-                        Layout.preferredWidth: sidebar.compact ? 40 : 32
-                        Layout.preferredHeight: sidebar.compact ? 40 : 32
+                        Layout.preferredWidth: sidebar.compact ? 34 : 32
+                        Layout.preferredHeight: sidebar.compact ? 34 : 32
                         source: Theme.dark ? "icon-dark.svg" : "icon-light.svg"
                         sourceSize.width: 64
                         sourceSize.height: 64
@@ -363,7 +364,7 @@ ApplicationWindow {
                                     anchors.leftMargin: 10
                                     anchors.rightMargin: 12
                                     spacing: 12
-                                    Monogram { label: rowRoot.shownName; source: icp.iconSource(modelData.iconKey, icp.iconRevision); size: 36 }
+                                    Monogram { label: rowRoot.shownName; glyph: modelData.wifi ? "wifi" : ""; source: modelData.wifi ? "" : icp.iconSource(modelData.iconKey, icp.iconRevision); size: 36 }
                                     ColumnLayout {
                                         Layout.fillWidth: true
                                         spacing: 2
@@ -374,7 +375,7 @@ ApplicationWindow {
                                             elide: Text.ElideRight; Layout.fillWidth: true
                                         }
                                         Text {
-                                            text: modelData.username || icp.tr("No user name", icp.languageRevision)
+                                            text: modelData.wifi ? icp.tr("Wi-Fi", icp.languageRevision) : (modelData.username || icp.tr("No user name", icp.languageRevision))
                                             textFormat: Text.PlainText
                                             color: Theme.secondary(0.62); font.pixelSize: 12 + 1
                                             elide: Text.ElideRight; Layout.fillWidth: true

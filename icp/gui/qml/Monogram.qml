@@ -6,6 +6,7 @@ Rectangle {
     id: root
     property string label: "?"
     property string source: ""
+    property string glyph: ""              // an Icon name drawn instead of the initial
     property real size: 36
     readonly property bool hasIcon: source !== "" && icon.status === Image.Ready
     width: size
@@ -13,7 +14,8 @@ Rectangle {
     radius: size * 0.27
 
     readonly property var tones: ["#4f8cff", "#2bb5a3", "#8a6cff", "#ff7a59", "#f0b429", "#e5568f", "#3fa7d6", "#6fbf4a"]
-    readonly property color base: {
+    readonly property color base: glyph !== "" ? "#3d8bff" : tonesBase
+    readonly property color tonesBase: {
         var h = 0
         for (var i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) % 9973
         return tones[h % tones.length]
@@ -44,9 +46,18 @@ Rectangle {
         Behavior on opacity { enabled: icp.animations; NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
     }
 
+    Icon {
+        visible: root.glyph !== ""
+        anchors.centerIn: parent
+        name: root.glyph
+        size: root.size * 0.56
+        stroke: 2.2
+        color: "white"
+    }
+
     Text {
         anchors.centerIn: parent
-        visible: !root.hasIcon
+        visible: !root.hasIcon && root.glyph === ""
         text: (root.label.replace(/^(www\.)/, "").charAt(0) || "?").toUpperCase()
         textFormat: Text.PlainText
         color: "white"

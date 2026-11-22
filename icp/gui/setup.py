@@ -29,10 +29,10 @@ TOOLS = {
     "python3": ("python3",),
 }
 PACKAGES = {
-    "apt": ("sudo apt install", {"git": "git", "wine": "wine64", "cmake": "cmake", "mingw": "g++-mingw-w64-x86-64", "python3": "python3"}),
-    "dnf": ("sudo dnf install", {"git": "git", "wine": "wine", "cmake": "cmake", "mingw": "mingw64-gcc-c++", "python3": "python3"}),
-    "pacman": ("sudo pacman -S", {"git": "git", "wine": "wine", "cmake": "cmake", "mingw": "mingw-w64-gcc", "python3": "python"}),
-    "zypper": ("sudo zypper install", {"git": "git", "wine": "wine", "cmake": "cmake", "mingw": "mingw64-cross-gcc-c++", "python3": "python3"}),
+    "apt": ("sudo apt install", {"git": "git", "wine": "wine64", "cmake": "cmake", "mingw": "g++-mingw-w64-x86-64", "python3": "python3", "podman": "podman"}),
+    "dnf": ("sudo dnf install", {"git": "git", "wine": "wine", "cmake": "cmake", "mingw": "mingw64-gcc-c++", "python3": "python3", "podman": "podman"}),
+    "pacman": ("sudo pacman -S", {"git": "git", "wine": "wine", "cmake": "cmake", "mingw": "mingw-w64-gcc", "python3": "python", "podman": "podman"}),
+    "zypper": ("sudo zypper install", {"git": "git", "wine": "wine", "cmake": "cmake", "mingw": "mingw64-cross-gcc-c++", "python3": "python3", "podman": "podman"}),
 }
 
 
@@ -142,11 +142,16 @@ def find_installed_tool() -> Path | None:
 
 
 def healthy(url: str = DEFAULT_URL, timeout: float = 3) -> bool:
-    try:
-        with urllib.request.urlopen(url.rstrip("/") + "/healthz", timeout=timeout) as response:
-            return response.status == 200
-    except Exception:  # noqa: BLE001 - any failure means "not answering"
-        return False
+    """True when an anisette service answers: Anisette-on-Wine has /healthz, anisette-v3-server
+    answers its root with headers."""
+    for path in ("/healthz", "/"):
+        try:
+            with urllib.request.urlopen(url.rstrip("/") + path, timeout=timeout) as response:
+                if response.status == 200:
+                    return True
+        except Exception:  # noqa: BLE001 - try the next form
+            continue
+    return False
 
 
 def start_service(folder: Path, port: int = DEFAULT_PORT) -> None:
@@ -289,3 +294,63 @@ def unintegrate() -> None:
             path.unlink()
         except OSError:
             pass
+
+
+# ---- anisette-v3-server in a container ------------------------------------------------------
+CONTAINER_IMAGE = ("docker.io/dadoum/anisette-v3-server@"
+                   "sha256:d551c75454bcbee68dc262d4247d5f87fa309dfc8f2125644d333c648596e3c7")
+CONTAINER_NAME = "icloud-keychain-anisette"
+
+
+def container_runtime() -> str:
+    """podman (rootless, preferred) or docker, or "" when neither is installed."""
+    for name in ("podman", "docker"):
+        path = shutil.which(name)
+        if path:
+            return path
+    return ""
+
+
+def container_command() -> list[str]:
+    """Runs Dadoum's anisette-v3-server, reachable only from this computer, restarting with it."""
+    return [container_runtime(), "run", "-d", "--restart", "unless-stopped", "--name", CONTAINER_NAME,
+            "-p", f"127.0.0.1:{DEFAULT_PORT}:6969",
+            "--volume", f"{CONTAINER_NAME}:/home/Alcoholic/.config/anisette-v3/lib/", CONTAINER_IMAGE]
+
+
+def start_container(report) -> None:
+    """Pulls the pinned image and starts the container in a thread; reports like Installer."""
+    def run():
+        runtime = container_runtime()
+        if not runtime:
+            report("error", "Docker or Podman is not installed")
+            return
+        try:
+            report("step", "pull")
+            exists = subprocess.run([runtime, "container", "inspect", CONTAINER_NAME],
+                                    capture_output=True, text=True).returncode == 0
+            cmd = [runtime, "start", CONTAINER_NAME] if exists else container_command()
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                       stdin=subprocess.DEVNULL, text=True, errors="replace")
+            for line in process.stdout:
+                if line.strip():
+                    report("line", line.rstrip()[:300])
+            if process.wait() != 0:
+                raise RuntimeError(f"{Path(runtime).name} could not start the container")
+            report("step", "start")
+            for _ in range(60):
+                if healthy(timeout=1):
+                    break
+                threading.Event().wait(1)
+            else:
+                raise RuntimeError("the container started but the service is not answering yet")
+            report("done", "container")
+        except Exception as error:  # noqa: BLE001
+            report("error", str(error))
+    threading.Thread(target=run, daemon=True).start()
+
+
+def autostart_container() -> None:
+    runtime = container_runtime()
+    if runtime:
+        subprocess.run([runtime, "start", CONTAINER_NAME], capture_output=True, check=False)

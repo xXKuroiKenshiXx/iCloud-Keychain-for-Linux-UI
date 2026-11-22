@@ -44,8 +44,12 @@ def credential_items(store) -> list[dict]:
     for credential in store.all():
         data = credential.public_dict()
         domain = str(data.get("domain") or "")
-        data["site"] = domain if _HOST.match(domain) else ""
-        data["name"] = data.get("title") or data["site"] or domain or "Untitled"
+        data["wifi"] = domain.strip().lower() == "airport"
+        data["site"] = domain if _HOST.match(domain) and not data["wifi"] else ""
+        if data["wifi"]:
+            data["name"] = data.get("username") or data.get("title") or "Wi-Fi"
+        else:
+            data["name"] = data.get("title") or data["site"] or domain or "Untitled"
         items.append(data)
     items.sort(key=lambda item: str(item["name"]).casefold())
     return items

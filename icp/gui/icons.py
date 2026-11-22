@@ -307,6 +307,17 @@ class IconStore:
                 self.meta[key] = {"ok": False, "at": 0, "v": self.meta[key].get("v", 0) + 1}
             self._save_meta()
 
+    def clear(self) -> None:
+        """Deletes every cached icon and name, custom ones included."""
+        with self._lock:
+            for path in self.dir.glob("*.bin"):
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
+            self._png.clear()
+            self.meta = {}
+
     def needs_fetch(self, key: str) -> bool:
         entry = self.meta.get(key)
         if not entry:

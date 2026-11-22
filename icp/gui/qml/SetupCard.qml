@@ -11,7 +11,7 @@ Item {
     property Item light: null
     signal finished()
 
-    property string mode: "choose"        // choose | url
+    property string mode: "choose"        // choose | auto | container | url
     property string folder: ""
     property string folderError: ""
     readonly property var st: icp.setup
@@ -21,10 +21,16 @@ Item {
                                  : st.phase === "error" ? "error"
                                  : mode === "url" ? "url"
                                  : mode === "choose" ? "choose"
-                                 : (st.missing || []).length > 0 ? "tools" : "files"
+                                 : (st.missing || []).length > 0 ? "tools"
+                                 : mode === "container" ? "install" : "files"
     function tt(text) { return icp.tr(text, icp.languageRevision) }
 
-    readonly property var installSteps: [
+    readonly property var installSteps: st.kind === "container" ? containerSteps : wineSteps
+    readonly property var containerSteps: [
+        { key: "pull", label: "Downloading anisette-v3-server (pinned version)" },
+        { key: "start", label: "Starting the service" }
+    ]
+    readonly property var wineSteps: [
         { key: "copy", label: "Copying the iCloud files" },
         { key: "download", label: "Downloading Anisette-on-Wine (reviewed version)" },
         { key: "build", label: "Building the helper" },
@@ -122,7 +128,7 @@ Item {
                 lineHeight: 1.2
                 text: root.step === "error" ? (root.st.error || "") : root.tt(({
                     "choose": "Apple only accepts sign-ins from devices it recognizes. A small service on this computer creates that device identity. It never sees your Apple Account, password or passwords.",
-                    "url": "Enter the address of an anisette service you run, such as anisette-rs or omnisette-server.",
+                    "url": "Enter the address of an anisette service you run. anisette-rs needs a private factory file from its author, so it can't be set up automatically.",
                     "tools": "These programs are needed once. Your computer asks for its administrator password in its own window; this app never sees or stores it.",
                     "files": "Apple's libraries can't be downloaded here. Copy the iCloud folder from a Windows computer with iCloud for Windows 15.10.39 (Microsoft Store), then choose it.",
                     "install": "This takes a few minutes. You can leave the window open.",
@@ -147,7 +153,13 @@ Item {
                     icon: "laptop"
                     title: root.tt("On this computer (recommended)")
                     detail: root.tt("Uses the iCloud for Windows files under Wine. Set up automatically.")
-                    onPicked: { root.mode = "auto"; icp.setupRefresh() }
+                    onPicked: { root.mode = "auto"; icp.setupReset() }
+                }
+                Option {
+                    icon: "grid"
+                    title: root.tt("In a container (anisette-v3-server)")
+                    detail: root.tt("Runs Dadoum's anisette-v3-server with Podman or Docker, only on this computer. No iCloud for Windows files needed.")
+                    onPicked: { root.mode = "container"; icp.setupContainer() }
                 }
                 Option {
                     icon: "globe"
@@ -351,7 +363,7 @@ Item {
                 Layout.fillWidth: true
                 prominent: true
                 text: root.tt("Try Again")
-                onClicked: { icp.setupReset(); root.mode = "auto" }
+                onClicked: { var container = root.st.kind === "container"; icp.setupReset(); root.mode = container ? "choose" : "auto" }
             }
             GlassButton {
                 visible: root.step === "done"

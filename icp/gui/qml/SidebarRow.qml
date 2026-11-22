@@ -19,10 +19,10 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 10
-        anchors.rightMargin: 10
+        anchors.leftMargin: root.compact ? Math.round((root.width - 18) / 2) : 10
+        anchors.rightMargin: root.compact ? 0 : 10
         spacing: 10
-        Icon { name: root.icon; size: 17; color: root.active ? Theme.accent : Theme.secondary(0.8) }
+        Icon { name: root.icon; size: root.compact ? 18 : 17; color: root.active ? Theme.accent : Theme.secondary(0.8) }
         Text {
             visible: !root.compact
             text: root.label

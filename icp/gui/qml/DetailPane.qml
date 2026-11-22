@@ -12,7 +12,10 @@ Item {
     signal copyRequested(string text)
     readonly property string shownName: entry ? icp.displayName(entry.iconKey, entry.name, entry.title || "", icp.iconRevision) : ""
 
-    onEntryChanged: { revealed = false; refreshCode(); if (entry && icp.animations) detailIn.restart() }
+    property string qrSource: ""
+    Timer { id: qrTimer; interval: 60000; onTriggered: { root.qrSource = ""; icp.forgetQr() } }
+    onEntryChanged: {
+        qrSource = ""; icp.forgetQr(); revealed = false; refreshCode(); if (entry && icp.animations) detailIn.restart() }
 
     ParallelAnimation {
         id: detailIn
@@ -69,7 +72,7 @@ Item {
 
             RowLayout {
                 spacing: 16
-                Monogram { label: root.shownName; source: root.entry ? icp.iconSource(root.entry.iconKey, icp.iconRevision) : ""; size: 64 }
+                Monogram { label: root.shownName; glyph: root.entry && root.entry.wifi ? "wifi" : ""; source: root.entry && !root.entry.wifi ? icp.iconSource(root.entry.iconKey, icp.iconRevision) : ""; size: 64 }
                 ColumnLayout {
                     spacing: 6
                     Text {
@@ -80,7 +83,7 @@ Item {
                     }
                     Row {
                         spacing: 6
-                        GlassButton { compact: true; text: icp.tr("Change Icon…", icp.languageRevision); onClicked: iconDialog.open() }
+                        GlassButton { visible: root.entry && !root.entry.wifi; compact: true; text: icp.tr("Change Icon…", icp.languageRevision); onClicked: iconDialog.open() }
                         GlassButton {
                             compact: true; text: icp.tr("Reset Icon", icp.languageRevision)
                             visible: root.entry && icp.isCustomIcon(root.entry.iconKey, icp.iconRevision)
@@ -111,7 +114,7 @@ Item {
                     spacing: 0
 
                     FieldRow {
-                        title: icp.tr("User name", icp.languageRevision)
+                        title: root.entry && root.entry.wifi ? icp.tr("Network", icp.languageRevision) : icp.tr("User name", icp.languageRevision)
                         value: root.entry ? (root.entry.username || "—") : ""
                         copyable: root.entry && !!root.entry.username
                         onCopy: root.copyRequested(root.entry.username)
@@ -144,6 +147,44 @@ Item {
                         valueColor: Theme.accent
                         copyable: true
                         onCopy: root.copyRequested(root.entry.site)
+                    }
+                }
+            }
+
+            // Wi-Fi: a join code another device can scan
+            ColumnLayout {
+                visible: root.entry && root.entry.wifi === true
+                Layout.fillWidth: true
+                spacing: 10
+                GlassButton {
+                    objectName: "qrButton"
+                    icon: "grid"
+                    text: root.qrSource ? icp.tr("Hide QR Code", icp.languageRevision) : icp.tr("Show QR Code", icp.languageRevision)
+                    onClicked: {
+                        if (root.qrSource) { root.qrSource = ""; icp.forgetQr(); qrTimer.stop() }
+                        else { root.qrSource = icp.wifiQr(root.entry.username || root.entry.name, root.entry.password || ""); qrTimer.restart() }
+                    }
+                }
+                RowLayout {
+                    visible: root.qrSource !== ""
+                    spacing: 16
+                    Rectangle {
+                        width: 196; height: 196; radius: 18
+                        color: "white"
+                        Image {
+                            anchors.centerIn: parent
+                            width: 176; height: 176
+                            source: root.qrSource
+                            cache: false
+                            smooth: false
+                            fillMode: Image.PreserveAspectFit
+                        }
+                    }
+                    Text {
+                        Layout.preferredWidth: 240
+                        wrapMode: Text.WordWrap
+                        text: icp.tr("Scan with a phone camera to join this network. The code includes the password and hides itself after a minute.", icp.languageRevision)
+                        color: Theme.secondary(0.7); font.pixelSize: 13; lineHeight: 1.2
                     }
                 }
             }

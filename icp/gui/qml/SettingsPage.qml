@@ -62,6 +62,16 @@ Glass {
                         }
                     }
                     GlassButton { compact: true; icon: "sync"; text: icp.tr("Refresh", icp.languageRevision); enabled: icp.fetchIcons; onClicked: icp.refreshIcons() }
+                    GlassButton {
+                        compact: true
+                        icon: "trash"
+                        implicitWidth: implicitHeight
+                        onClicked: icp.clearIconCache()
+                        ToolTip.visible: trashHover.hovered
+                        ToolTip.delay: 300
+                        ToolTip.text: icp.tr("Clear Icon Cache", icp.languageRevision)
+                        HoverHandler { id: trashHover }
+                    }
                     Toggle { checked: icp.fetchIcons; onToggled: (on) => icp.setFetchIcons(on) }
                 }
                 Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }

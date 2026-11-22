@@ -76,6 +76,44 @@ class _OfflineNetworkFactory(QQmlNetworkAccessManagerFactory):
         return _OfflineNetwork(parent)
 
 
+def wifi_payload(ssid: str, password: str) -> str:
+    """The standard Wi-Fi QR text (WIFI:T:WPA;S:...;P:...;;) with its special characters escaped."""
+    def esc(value: str) -> str:
+        return "".join("\\" + ch if ch in '\\;,:"' else ch for ch in value)
+    kind = "WPA" if password else "nopass"
+    return f"WIFI:T:{kind};S:{esc(ssid)};" + (f"P:{esc(password)};" if password else "") + ";"
+
+
+class _QrProvider(QQuickImageProvider):
+    """Draws QR codes from text held in memory under one-time tokens; nothing touches disk."""
+
+    def __init__(self, controller: "Controller"):
+        super().__init__(QQuickImageProvider.ImageType.Image)
+        self.controller = controller
+
+    def requestImage(self, ident, size):
+        from PyQt6.QtCore import QRectF, Qt
+        from PyQt6.QtGui import QColor, QPainter
+        payload = self.controller._qr_payloads.get(ident.split("#", 1)[0], "")
+        if not payload:
+            return QImage(), QImage().size()
+        import segno
+        matrix = segno.make_qr(payload, error="m").matrix
+        border, scale = 2, 8
+        side = (len(matrix) + border * 2) * scale
+        image = QImage(side, side, QImage.Format.Format_RGB32)
+        image.fill(QColor("white"))
+        painter = QPainter(image)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor("black"))
+        for y, row in enumerate(matrix):
+            for x, on in enumerate(row):
+                if on:
+                    painter.drawRect(QRectF((x + border) * scale, (y + border) * scale, scale, scale))
+        painter.end()
+        return image, image.size()
+
+
 class _IconProvider(QQuickImageProvider):
     """Serves decrypted icons from memory as image://icons/<key>#<version>."""
 
@@ -180,6 +218,7 @@ class Controller(QObject):
         self._icon_lock = threading.Lock()
         self._icon_thread: threading.Thread | None = None
         self._icon_revision = 0
+        self._qr_payloads: dict[str, str] = {}
         self._anisette_state = -1          # -1 unknown, 0 not answering, 1 answering
         self.iconFetched.connect(self._on_icon)
         self.anisetteChecked.connect(lambda ok: self._set(anisette_state=1 if ok else 0))
@@ -480,6 +519,16 @@ class Controller(QObject):
     def _autostart_anisette(self) -> None:
         """Starts a local Anisette-on-Wine that is already installed, then checks the service."""
         configured = self._prefs.get("anisette") or {}
+        if configured.get("mode") == "container":
+            def start():
+                anisette_setup.autostart_container()
+                for _ in range(20):
+                    if anisette_setup.healthy(self.bridge.anisette_url, timeout=1):
+                        break
+                    time.sleep(1)
+                self.anisetteChecked.emit(anisette_setup.healthy(self.bridge.anisette_url, timeout=2))
+            threading.Thread(target=start, daemon=True).start()
+            return
         if configured.get("mode") != "url":
             folder = anisette_setup.find_installed_tool()
             if folder and self.bridge.anisette_url == anisette_setup.DEFAULT_URL:
@@ -501,6 +550,13 @@ class Controller(QObject):
 
     @pyqtSlot()
     def setupRefresh(self) -> None:
+        if self._setup.get("kind") == "container":
+            missing = [] if anisette_setup.container_runtime() else ["podman"]
+            self._setup.update({"missing": missing, "command": anisette_setup.install_command(missing)})
+            self.setupChanged.emit()
+            if not missing and self._setup.get("phase") == "idle":
+                self.setupContainer()
+            return
         missing = anisette_setup.missing_tools()
         self._setup.update({"missing": missing, "command": anisette_setup.install_command(missing),
                             "candidates": anisette_setup.find_icloud_dirs()})
@@ -549,7 +605,7 @@ class Controller(QObject):
 
     @pyqtSlot()
     def setupReset(self) -> None:
-        self._setup.update({"phase": "idle", "error": "", "log": []})
+        self._setup.update({"phase": "idle", "error": "", "log": [], "kind": "wine"})
         self.setupRefresh()
 
     @pyqtSlot(str, result=str)
@@ -562,10 +618,25 @@ class Controller(QObject):
     def setupInstall(self, icloud_folder: str) -> None:
         if self._setup.get("phase") == "running":
             return
-        self._setup.update({"phase": "running", "step": "copy", "error": "", "log": []})
+        self._setup.update({"phase": "running", "kind": "wine", "step": "copy", "error": "", "log": []})
         self.setupChanged.emit()
         self._append_log("info", "Anisette setup started")
         anisette_setup.Installer(icloud_folder, lambda kind, text: self.setupReport.emit(kind, text)).start()
+
+    @pyqtSlot()
+    def setupContainer(self) -> None:
+        """anisette-v3-server in Podman/Docker; asks to install Podman first when neither exists."""
+        if self._setup.get("phase") in ("running", "tools"):
+            return
+        if not anisette_setup.container_runtime():
+            self._setup.update({"missing": ["podman"], "command": anisette_setup.install_command(["podman"]),
+                                "kind": "container"})
+            self.setupChanged.emit()
+            return
+        self._setup.update({"phase": "running", "kind": "container", "step": "pull", "error": "", "log": []})
+        self.setupChanged.emit()
+        self._append_log("info", "Starting anisette-v3-server in a container")
+        anisette_setup.start_container(lambda kind, text: self.setupReport.emit(kind, text))
 
     @pyqtSlot(str)
     def setupUseUrl(self, url: str) -> None:
@@ -595,7 +666,7 @@ class Controller(QObject):
             self._setup["step"] = text
         elif kind == "done":
             self._setup.update({"phase": "done", "step": "start"})
-            self._prefs["anisette"] = {"mode": "wine"}
+            self._prefs["anisette"] = {"mode": "container" if text == "container" else "wine"}
             self._write_prefs()
             self._apply_url(anisette_setup.DEFAULT_URL)
             self._append_log("info", "Anisette setup finished")
@@ -615,18 +686,23 @@ class Controller(QObject):
     def checkAnisette(self) -> None:
         """Probes the anisette service in the background and updates `anisetteState`."""
         def probe():
-            import urllib.request
-            url = self.bridge.anisette_url.rstrip("/") + "/healthz"
-            try:
-                with urllib.request.urlopen(url, timeout=3) as response:
-                    ok = response.status == 200
-            except Exception:  # noqa: BLE001 - any failure means "not answering"
-                ok = False
-            self.anisetteChecked.emit(ok)
+            self.anisetteChecked.emit(anisette_setup.healthy(self.bridge.anisette_url, timeout=3))
 
         threading.Thread(target=probe, daemon=True).start()
 
     anisetteChecked = pyqtSignal(bool)
+
+    @pyqtSlot(str, str, result=str)
+    def wifiQr(self, ssid: str, password: str) -> str:
+        """An image:// URL for this network's join code; the old code is forgotten."""
+        self._qr_payloads.clear()
+        token = secrets.token_hex(12)
+        self._qr_payloads[token] = wifi_payload(ssid, password)
+        return f"image://qr/{token}"
+
+    @pyqtSlot()
+    def forgetQr(self) -> None:
+        self._qr_payloads.clear()
 
     @pyqtSlot(str, int, result=str)
     def iconSource(self, key: str, revision: int) -> str:
@@ -668,6 +744,16 @@ class Controller(QObject):
             if not entry.get("ok"):
                 entry["at"] = 0
         self._schedule_icons()
+
+    @pyqtSlot()
+    def clearIconCache(self) -> None:
+        if not self._ensure_store():
+            return
+        self.icon_store.clear()
+        self._icon_jobs = []
+        self._append_log("info", "Icon cache cleared")
+        self.toast.emit(self._t("Icon cache cleared"))
+        self._bump_icons()
 
     @pyqtSlot(str, str, str)
     def chooseIcon(self, key: str, display: str, file_url: str) -> None:
@@ -920,6 +1006,7 @@ def create_engine(controller: Controller) -> QQmlApplicationEngine:
     engine._network_factory = _OfflineNetworkFactory()  # kept alive with the engine
     engine.setNetworkAccessManagerFactory(engine._network_factory)
     engine.addImageProvider("icons", _IconProvider(controller))
+    engine.addImageProvider("qr", _QrProvider(controller))
     engine.rootContext().setContextProperty("icp", controller)
     engine.load(QUrl.fromLocalFile(str(QML_DIR / "Main.qml")))
     return engine
