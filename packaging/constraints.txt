@@ -1,0 +1,8 @@
+# Versions bundled into the AppImage (tested together).
+PyQt6==6.12.1
+PyQt6-Qt6==6.12.0
+requests==2.31.0
+srp==1.0.22
+cryptography==50.0.2
+PyNaCl==1.6.2
+SecretStorage==3.5.0

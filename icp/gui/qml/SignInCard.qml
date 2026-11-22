@@ -26,8 +26,16 @@ Item {
 
     implicitHeight: card.implicitHeight
     height: implicitHeight
+    Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+
+    ParallelAnimation {
+        id: stepIn
+        NumberAnimation { target: stepContent; property: "opacity"; from: 0; to: 1; duration: 280; easing.type: Easing.OutCubic }
+        NumberAnimation { target: stepLift; property: "y"; from: 10; to: 0; duration: 440; easing.type: Easing.OutExpo }
+    }
 
     onStepChanged: {
+        stepIn.restart()
         answerField.text = ""
         if (step === "code" || step === "passcode" || step === "password" || step === "text" || step === "username")
             answerField.forceActiveFocus()
@@ -37,6 +45,7 @@ Item {
     Glass {
         anchors.fill: parent
         backdrop: root.backdrop
+        revealDelay: 120
         radius: 28
         tintTop: 0.15
     }
@@ -47,6 +56,8 @@ Item {
         spacing: 0
 
         ColumnLayout {
+            id: stepContent
+            transform: Translate { id: stepLift }
             Layout.fillWidth: true
             Layout.margins: 34
             spacing: 14

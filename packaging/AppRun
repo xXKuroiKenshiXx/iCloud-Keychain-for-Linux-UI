@@ -1,0 +1,11 @@
+#!/bin/sh
+# AppImage entry point: the Liquid Glass window by default, the icp CLI with --cli.
+HERE="$(dirname "$(readlink -f "$0")")"
+unset PYTHONPATH PYTHONHOME
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+PY="$HERE/usr/python/bin/python3"
+if [ "${1:-}" = "--cli" ]; then
+    shift
+    exec "$PY" -I -m icp "$@"
+fi
+exec "$PY" -I -c 'import sys; from icp.gui.glass import main; sys.exit(main(sys.argv[1:]))' "$@"

@@ -11,7 +11,13 @@ Item {
     property var code: ({})
     signal copyRequested(string text)
 
-    onEntryChanged: { revealed = false; refreshCode() }
+    onEntryChanged: { revealed = false; refreshCode(); if (entry) detailIn.restart() }
+
+    ParallelAnimation {
+        id: detailIn
+        NumberAnimation { target: column; property: "opacity"; from: 0; to: 1; duration: 300; easing.type: Easing.OutCubic }
+        NumberAnimation { target: detailLift; property: "y"; from: 12; to: 0; duration: 460; easing.type: Easing.OutExpo }
+    }
     function refreshCode() { code = entry && entry.totp ? icp.totp(entry.totp) : ({}) }
     function grouped(c) { return c && c.length === 6 ? c.slice(0, 3) + " " + c.slice(3) : (c || "") }
 
@@ -57,6 +63,7 @@ Item {
         ColumnLayout {
             id: column
             width: parent.width
+            transform: Translate { id: detailLift }
             spacing: 22
 
             RowLayout {

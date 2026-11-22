@@ -135,10 +135,10 @@ class GlassControllerTests(unittest.TestCase):
 
         class Store:
             def all(self):
-                return [Cred("7C1380EE-5010-4B03-BAE2-96BDC74C28E1", "Whakoom"), Cred("github.com", "")]
+                return [Cred("0F3A9C12-7B4E-4D21-9E55-3C8A1B2D4E6F", "Home Router"), Cred("github.com", "")]
 
         items = credential_items(Store())
-        self.assertEqual([(i["name"], i["site"]) for i in items], [("github.com", "github.com"), ("Whakoom", "")])
+        self.assertEqual([(i["name"], i["site"]) for i in items], [("github.com", "github.com"), ("Home Router", "")])
 
     def test_debug_log_collapses_repeats_and_answer_validates_codes(self):
         from icp.gui.glass import Controller

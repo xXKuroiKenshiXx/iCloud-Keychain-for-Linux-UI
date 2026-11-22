@@ -10,6 +10,20 @@ Item {
     property real tintTop: 0.13
     property real tintBottom: 0.05
     property bool shadow: true
+    property int revealDelay: -1          // >= 0 plays the entrance after that many ms
+
+    opacity: revealDelay < 0 ? 1 : 0
+    transform: Translate { id: lift; y: root.revealDelay < 0 ? 0 : 18 }
+    Component.onCompleted: if (revealDelay >= 0) reveal.start()
+
+    SequentialAnimation {
+        id: reveal
+        PauseAnimation { duration: Math.max(0, root.revealDelay) }
+        ParallelAnimation {
+            NumberAnimation { target: root; property: "opacity"; to: 1; duration: 520; easing.type: Easing.OutCubic }
+            NumberAnimation { target: lift; property: "y"; to: 0; duration: 700; easing.type: Easing.OutExpo }
+        }
+    }
 
     RectangularShadow {
         visible: root.shadow

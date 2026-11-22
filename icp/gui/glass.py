@@ -12,7 +12,7 @@ import threading
 import time
 from pathlib import Path
 
-from PyQt6.QtCore import QObject, QTimer, QUrl, pyqtProperty, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QCoreApplication, QEvent, QObject, QTimer, QUrl, pyqtProperty, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QGuiApplication, QIcon, QImage
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt6.QtQml import QQmlApplicationEngine, QQmlNetworkAccessManagerFactory
@@ -26,11 +26,28 @@ LOG_LIMIT = 2000
 CLIPBOARD_CLEAR_MS = 30_000
 
 
+def mask_account(value: str) -> str:
+    """Keeps an Apple Account recognizable in logs without writing it out."""
+    name, at, domain = (value or "").partition("@")
+    return (name[:2] + "***" + at + domain) if at else (value[:2] + "***" if value else "")
+
+
+def harden_process() -> None:
+    """Private file modes for everything the window writes, and no core dumps that could
+    hold decrypted passwords."""
+    os.umask(0o077)
+    try:
+        import resource
+        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+    except (ImportError, ValueError, OSError):
+        pass
+
+
 class _LogForwarder(logging.Handler):
     """Sends engine log records to the debug console, from any thread."""
 
     def __init__(self, controller: "Controller"):
-        super().__init__(logging.DEBUG)
+        super().__init__(logging.INFO)
         self.controller = controller
 
     def emit(self, record: logging.LogRecord) -> None:
@@ -102,7 +119,7 @@ class Controller(QObject):
         self._redecorate.timeout.connect(self._publish)
         handler = _LogForwarder(self)
         logging.getLogger("icp").addHandler(handler)
-        logging.getLogger("icp").setLevel(logging.DEBUG)
+        logging.getLogger("icp").setLevel(logging.INFO)
         self._append_log("info", f"Anisette service: {self.bridge.anisette_url}")
         QTimer.singleShot(0, self._load_saved)
 
@@ -163,7 +180,7 @@ class Controller(QObject):
         if not email or not password:
             self._set(error="Enter your Apple Account email and password.")
             return
-        self._append_log("info", f"Sign-in started for {email}")
+        self._append_log("info", f"Sign-in started for {mask_account(email)}")
         self._pending = None
         self._set(error="", stage="working", busy=True, status="Signing in…")
         try:
@@ -463,6 +480,7 @@ def main(argv=None) -> int:
         from .window import main as classic_main
         return classic_main((["--anisette", args.anisette] if args.anisette else [])
                             + (["--smoke-test"] if args.smoke_test else []))
+    harden_process()
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
     app = QGuiApplication(sys.argv[:1])
     app.setApplicationName("Passwords")
@@ -477,6 +495,9 @@ def main(argv=None) -> int:
     if args.smoke_test:
         QTimer.singleShot(3000, app.quit)
     code = app.exec()
-    engine.deleteLater()
-    del engine  # release QML bindings before the controller they read
+    # Tear the window down while the controller it reads still exists.
+    for root in engine.rootObjects():
+        root.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete.value)
+    del engine
     return code

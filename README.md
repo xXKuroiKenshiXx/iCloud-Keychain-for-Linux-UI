@@ -1,13 +1,39 @@
-# iCloud Keychain for Linux
+<p align="center">
+  <img src="icp/gui/qml/icon.svg" width="96" alt="iCloud Keychain for Linux UI icon">
+</p>
+
+<h1 align="center">iCloud Keychain for Linux UI</h1>
+
+<p align="center">
+  Your iCloud Passwords on Linux, in a Liquid Glass desktop app.<br>
+  A fork of <a href="https://github.com/Sank6/iCloud-Keychain-for-Linux">Sank6/iCloud-Keychain-for-Linux</a> that adds a Qt Quick interface to its <code>icp</code> engine.
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/vault.png" width="820" alt="Password list and detail with website icons">
+</p>
 
 **Unofficial** client for iCloud Keychain. Sign in with your Apple ID and
 `icp` registers this computer as one of your Apple devices, then downloads your passwords into a
 private, encrypted store on your machine. A browser extension fills them in for you, just like the
-Passwords app on a Mac or iPhone. Your Hide My Email addresses show up too. This project is a 
+Passwords app on a Mac or iPhone. Your Hide My Email addresses show up too. This project is a
 reverse engineering attempt and **is not affiliated with Apple in any way**.
 
 > This is **untested** with Advanced Data Protection enabled. Any help with this will be appreciated -
 > let me know if you have any issues with ADP enabled (also lmk if it works). Please don't spam escrow attempts!
+
+## Download
+
+Each [release](../../releases) ships an `iCloud-Keychain-x86_64.AppImage` that bundles Python,
+Qt, and the engine:
+
+```
+chmod +x iCloud-Keychain-x86_64.AppImage
+ICP_ANISETTE_URL=http://127.0.0.1:6969 ./iCloud-Keychain-x86_64.AppImage          # window
+ICP_ANISETTE_URL=http://127.0.0.1:6969 ./iCloud-Keychain-x86_64.AppImage --cli status
+```
+
+You still need an anisette service (next section); Apple's libraries cannot be redistributed.
 
 ## What you'll need
 
@@ -40,6 +66,11 @@ source .venv/bin/activate
 ```
 
 ## Desktop app (Qt)
+
+<p align="center">
+  <img src="docs/screenshots/confirm.png" width="410" alt="Keychain join confirmation naming the device">
+  <img src="docs/screenshots/settings.png" width="410" alt="Settings with the debug console">
+</p>
 
 This fork adds a Qt Quick window in a Liquid Glass style for everything `icp` does in the
 terminal: sign-in, the 2FA code, choosing the escrow device, the irreversible passcode step
@@ -172,6 +203,17 @@ status   last sync, next allowed sync, whether a login is needed (--json)
 diag     read-only diagnostics: zones, groups (counts only, no secrets)
 logout   sign out (use --wipe-device to also forget this device)
 ```
+
+## Security notes for the desktop app
+
+- The window has no network access of its own; only the engine and the optional icon fetcher
+  connect, and the icon fetcher talks only to each saved site over verified HTTPS.
+- Every string from the vault is rendered as plain text, never as rich text.
+- Files are created with a `077` umask, core dumps are disabled while the window runs, the
+  clipboard is cleared 30 seconds after a copy, and revealed passwords hide again after 20
+  seconds.
+- The debug console masks the Apple Account and records engine messages from INFO upward;
+  passwords, codes, and passcodes are never logged.
 
 ## Credits
 

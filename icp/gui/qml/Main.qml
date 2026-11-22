@@ -41,6 +41,8 @@ ApplicationWindow {
         return icp.items.filter(matches)
     }
 
+    onSelectedChanged: list.syncCurrent()
+
     Connections {
         target: icp
         function onToast(message) { toast.show(message) }
@@ -62,6 +64,7 @@ ApplicationWindow {
         Glass {
             id: sidebar
             backdrop: backdrop
+            revealDelay: 0
             Layout.preferredWidth: 240
             Layout.fillHeight: true
 
@@ -143,10 +146,17 @@ ApplicationWindow {
             RowLayout {
                 anchors.fill: parent
                 spacing: 14
-                visible: win.vaultSection && !win.needsSignIn
+                readonly property bool shown: win.vaultSection && !win.needsSignIn
+                opacity: shown ? 1 : 0
+                scale: shown ? 1 : 0.985
+                visible: opacity > 0.01
+                enabled: shown
+                Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
 
                 Glass {
                     backdrop: backdrop
+                    revealDelay: 90
                     Layout.preferredWidth: 340
                     Layout.fillHeight: true
 
@@ -180,18 +190,52 @@ ApplicationWindow {
                             spacing: 2
                             model: win.visibleItems
                             boundsBehavior: Flickable.StopAtBounds
+                            currentIndex: -1
+                            highlightFollowsCurrentItem: true
+                            highlightMoveDuration: 280
+                            highlightMoveVelocity: -1
+                            highlightResizeDuration: 0
+                            property bool animateRows: true
+                            function syncCurrent() {
+                                var s = win.selected, idx = -1
+                                for (var i = 0; s && i < win.visibleItems.length; i++) {
+                                    var it = win.visibleItems[i]
+                                    if (it.iconKey === s.iconKey && it.username === s.username && it.name === s.name) { idx = i; break }
+                                }
+                                currentIndex = idx
+                            }
+                            onModelChanged: { animateRows = true; rowsSettle.restart(); Qt.callLater(syncCurrent) }
+                            Timer { id: rowsSettle; interval: 900; onTriggered: list.animateRows = false }
+                            highlight: Rectangle {
+                                radius: 12
+                                color: Qt.rgba(0.45, 0.65, 1, 0.30)
+                                border.width: 1
+                                border.color: Qt.rgba(1, 1, 1, 0.16)
+                            }
                             ScrollBar.vertical: ScrollBar {
                                 policy: ScrollBar.AsNeeded
                                 contentItem: Rectangle { implicitWidth: 5; radius: 3; color: Qt.rgba(1, 1, 1, 0.28) }
                             }
                             delegate: Rectangle {
+                                id: rowRoot
                                 required property var modelData
+                                required property int index
                                 width: ListView.view.width - 8
+                                opacity: list.animateRows ? 0 : 1
+                                transform: Translate { id: rowLift; y: list.animateRows ? 10 : 0 }
+                                Component.onCompleted: if (list.animateRows) rowIn.start()
+                                SequentialAnimation {
+                                    id: rowIn
+                                    PauseAnimation { duration: Math.min(rowRoot.index, 12) * 28 }
+                                    ParallelAnimation {
+                                        NumberAnimation { target: rowRoot; property: "opacity"; to: 1; duration: 320; easing.type: Easing.OutCubic }
+                                        NumberAnimation { target: rowLift; property: "y"; to: 0; duration: 460; easing.type: Easing.OutExpo }
+                                    }
+                                }
                                 height: 56
                                 radius: 12
                                 readonly property bool current: win.selected !== null && win.selected.iconKey === modelData.iconKey && win.selected.username === modelData.username && win.selected.name === modelData.name
-                                color: current ? Qt.rgba(0.45, 0.65, 1, 0.30)
-                                               : (rowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : "transparent")
+                                color: !current && rowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : "transparent"
                                 Behavior on color { ColorAnimation { duration: 120 } }
                                 RowLayout {
                                     anchors.fill: parent
@@ -222,7 +266,7 @@ ApplicationWindow {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: win.selected = modelData
+                                    onClicked: { win.selected = modelData; list.currentIndex = rowRoot.index }
                                 }
                             }
 
@@ -242,6 +286,7 @@ ApplicationWindow {
 
                 Glass {
                     backdrop: backdrop
+                    revealDelay: 180
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     DetailPane {
@@ -255,7 +300,13 @@ ApplicationWindow {
             // Sign-in / account
             Item {
                 anchors.fill: parent
-                visible: win.section === "account" || (win.vaultSection && win.needsSignIn)
+                readonly property bool shown: win.section === "account" || (win.vaultSection && win.needsSignIn)
+                opacity: shown ? 1 : 0
+                scale: shown ? 1 : 0.985
+                visible: opacity > 0.01
+                enabled: shown
+                Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                 SignInCard {
                     anchors.centerIn: parent
                     width: Math.min(parent.width - 40, 470)
@@ -267,7 +318,13 @@ ApplicationWindow {
             // Settings + debug console
             SettingsPage {
                 anchors.fill: parent
-                visible: win.section === "settings"
+                readonly property bool shown: win.section === "settings"
+                opacity: shown ? 1 : 0
+                scale: shown ? 1 : 0.985
+                visible: opacity > 0.01
+                enabled: shown
+                Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                 backdrop: backdrop
             }
         }

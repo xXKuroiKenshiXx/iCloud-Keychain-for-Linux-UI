@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=iCloud Keychain
+Comment=iCloud Passwords on Linux
+Exec=icloud-keychain
+Icon=icloud-keychain
+Categories=Utility;Security;
+Terminal=false
+StartupWMClass=icloud-keychain

@@ -39,7 +39,9 @@ Rectangle {
         mipmap: true
         asynchronous: true
         cache: false
-        visible: root.hasIcon
+        visible: root.source !== ""
+        opacity: status === Image.Ready ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
     }
 
     Text {
