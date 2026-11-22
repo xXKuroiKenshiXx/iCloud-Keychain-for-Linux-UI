@@ -361,5 +361,9 @@ NEW = {
         "Стирает сеанс, пароли, значки и идентификатор этого компьютера в Связке ключей. При повторном входе понадобится код-пароль устройства.",
         "Стирає сеанс, паролі, значки та ідентифікатор цього комп’ютера у Зв’язці ключів. Під час повторного входу знадобиться код-пароль пристрою."),
     "Signed out": ("Sesión cerrada", "Sessão terminada", "Déconnecté", "Abgemeldet", "Disconnesso", "已退出登录", "Вы вышли", "Ви вийшли"),
+    "Connection": ("Conexión", "Ligação", "Connexion", "Verbindung", "Connessione", "连接", "Подключение", "Підключення"),
+    "Interface": ("Interfaz", "Interface", "Interface", "Oberfläche", "Interfaccia", "界面", "Интерфейс", "Інтерфейс"),
+    "Data": ("Datos", "Dados", "Données", "Daten", "Dati", "数据", "Данные", "Дані"),
+    "{n} of 10 recovery attempts left.": ("Quedan {n} de 10 intentos de recuperación.", "Restam {n} de 10 tentativas de recuperação.", "Il reste {n} tentatives de récupération sur 10.", "Noch {n} von 10 Wiederherstellungsversuchen.", "Restano {n} tentativi di recupero su 10.", "还剩 {n}/10 次恢复尝试。", "Осталось попыток восстановления: {n} из 10.", "Залишилося спроб відновлення: {n} з 10."),
     "Back": ("Atrás", "Voltar", "Retour", "Zurück", "Indietro", "返回", "Назад", "Назад"),
 }

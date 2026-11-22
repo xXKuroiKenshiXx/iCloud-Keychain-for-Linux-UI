@@ -73,6 +73,20 @@ def unpack_message(bin_: bytes, header_len: int, section_count: int):
     return header, sections
 
 
+def remaining_attempts(*sources: dict) -> int | None:
+    """Recovery attempts left on an escrow record when escrowproxy reports them (it is not
+    documented whether GETRECORDS always does), else None. Reading it spends nothing."""
+    for source in sources:
+        for key, value in (source or {}).items():
+            name = str(key).lower().replace("_", "")
+            if "remaining" in name and "attempt" in name:
+                try:
+                    return max(0, int(value))
+                except (TypeError, ValueError):
+                    continue
+    return None
+
+
 @dataclasses.dataclass
 class KeyVaultMessage:
     header: bytes
@@ -236,7 +250,11 @@ class EscrowRecovery:
         for entry in entries:
             meta_b64 = entry.get("metadata")
             meta = plistlib.loads(base64.b64decode(meta_b64)) if meta_b64 else {}
-            out.append({"label": entry.get("label", ""), "meta": meta})
+            record = {"label": entry.get("label", ""), "meta": meta}
+            left = remaining_attempts(entry, meta)
+            if left is not None:
+                record["remaining"] = left
+            out.append(record)
         return out
 
     def try_recover_escrow(self, label: str, passcode: bytes, *,

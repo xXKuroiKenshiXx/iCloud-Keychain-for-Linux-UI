@@ -37,6 +37,7 @@ class LanguageTests(unittest.TestCase):
         used = set()
         for path in QML.glob("*.qml"):
             used |= set(re.findall(r'icp\.tr\("([^"]*)"', path.read_text(encoding="utf-8")))
+            used |= set(re.findall(r'\btt\("([^"]+)"\)', path.read_text(encoding="utf-8")))
         setup = (QML / "SetupCard.qml").read_text(encoding="utf-8")
         used |= set(re.findall(r'tt\("([^"]+)"\)', setup))
         used |= set(re.findall(r'label: "([^"]+)"', setup))

@@ -16,13 +16,23 @@ Item {
                                  : icp.stage === "working" ? "working"
                                  : (icp.stage === "done" && icp.signedIn) ? "done" : "signin"
     property string lastDevice: ""
+    readonly property var attemptsPattern: / - (\d+) of 10 attempts left$/
+    function cleanDevice(name) { return (name || "").replace(attemptsPattern, "") }
+    function attemptsIn(name) { var m = (name || "").match(attemptsPattern); return m ? parseInt(m[1]) : -1 }
+    property int lastAttempts: -1
+    readonly property int attemptsLeft: {
+        var lines = (icp.prompt.message || "").split("
+")
+        for (var i = 0; i < lines.length; i++) { var n = attemptsIn(lines[i]); if (n >= 0) return n }
+        return lastAttempts
+    }
     readonly property string deviceLine: {
         var lines = (icp.prompt.message || "").split("\n")
         for (var i = 0; i < lines.length; i++) {
             var m = lines[i].match(/passcode of:\s*(.+)$/)
-            if (m) return m[1]
+            if (m) return root.cleanDevice(m[1])
             m = lines[i].match(/Using the only escrow bottle:\s*(.+)$/)
-            if (m) return m[1]
+            if (m) return root.cleanDevice(m[1])
         }
         return root.lastDevice
     }
@@ -188,7 +198,7 @@ Item {
             Notice {
                 visible: root.step === "confirm" || root.step === "passcode"
                 tone: "warning"
-                text: icp.tr("Each wrong passcode uses one of about ten recovery attempts. After the last one Apple permanently erases this recovery record. One correct entry is safe.", icp.languageRevision)
+                text: (root.attemptsLeft >= 0 ? icp.tr("{n} of 10 recovery attempts left.", icp.languageRevision).replace("{n}", root.attemptsLeft) + " " : "") + icp.tr("Each wrong passcode uses one of about ten recovery attempts. After the last one Apple permanently erases this recovery record. One correct entry is safe.", icp.languageRevision)
             }
 
             // ---- credentials
@@ -280,7 +290,14 @@ Item {
                             anchors.rightMargin: 14
                             spacing: 12
                             Icon { name: /mac/i.test(deviceRow.modelData.name) ? "laptop" : "phone"; size: 20; color: Theme.accent }
-                            Text { text: deviceRow.modelData.name; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                            Text { text: root.cleanDevice(deviceRow.modelData.name); textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                            Text {
+                                visible: root.attemptsIn(deviceRow.modelData.name) >= 0
+                                text: root.attemptsIn(deviceRow.modelData.name) + "/10"
+                                color: root.attemptsIn(deviceRow.modelData.name) <= 3 ? Theme.danger : Theme.secondary(0.7)
+                                font.pixelSize: 12
+                                font.features: ({ "tnum": 1 })
+                            }
                             Icon { name: "chevron"; size: 16; color: Theme.overlay(0.5) }
                         }
                         MouseArea {
@@ -288,7 +305,7 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: { root.lastDevice = deviceRow.modelData.name; icp.answer(String(deviceRow.modelData.index)) }
+                            onClicked: { root.lastDevice = root.cleanDevice(deviceRow.modelData.name); root.lastAttempts = root.attemptsIn(deviceRow.modelData.name); icp.answer(String(deviceRow.modelData.index)) }
                         }
                     }
                 }

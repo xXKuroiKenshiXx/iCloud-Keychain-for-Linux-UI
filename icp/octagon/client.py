@@ -209,7 +209,10 @@ class OctagonClient:
         try:
             recovery = escrow_srp.EscrowRecovery(escrow_host, email, pet, self.anisette)
             for rec in recovery.list_records():
-                meta_by_label[rec["label"]] = rec.get("meta") or {}
+                meta = dict(rec.get("meta") or {})
+                if rec.get("remaining") is not None:
+                    meta["_remaining_attempts"] = rec["remaining"]
+                meta_by_label[rec["label"]] = meta
         except Exception as e:               # noqa: BLE001 - metadata is best-effort, don't gate a join on it
             if warn:
                 warn(f"GETRECORDS device metadata unavailable: {e}")

@@ -2,85 +2,68 @@ import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 
-// Settings: connection, storage, and the live debug console.
+// Settings, grouped in sections whose rows share one layout: icon, title with an optional
+// description, and the controls aligned on the right. The debug console closes the page.
 Glass {
     id: root
     property bool follow: true
     signal requestSetup()
+    function tt(text) { return icp.tr(text, icp.languageRevision) }
 
-    ColumnLayout {
+    Flickable {
         anchors.fill: parent
         anchors.margins: 28
-        spacing: 18
+        contentHeight: page.implicitHeight
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        ScrollBar.vertical: ScrollBar { contentItem: Rectangle { implicitWidth: 5; radius: 3; color: Theme.overlay(0.28) } }
 
-        Text { text: icp.tr("Settings", icp.languageRevision); color: Theme.text; font.pixelSize: 26; font.weight: Font.Bold }
+        ColumnLayout {
+            id: page
+            width: parent.width
+            spacing: 22
 
-        Rectangle {
-            Layout.fillWidth: true
-            implicitHeight: info.implicitHeight
-            radius: 16
-            color: Theme.inset(0.28)
-            border.width: 1
-            border.color: Theme.overlay(0.10)
-            ColumnLayout {
-                id: info
-                width: parent.width
-                spacing: 0
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.margins: 14
-                    spacing: 14
-                    Icon { name: "globe"; size: 20; color: Theme.accent }
-                    Text { text: icp.tr("Anisette service", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.preferredWidth: 150; elide: Text.ElideRight }
-                    Rectangle { width: 8; height: 8; radius: 4; color: icp.anisetteState === 1 ? "#5fd68e" : icp.anisetteState === 0 ? "#ff7a7a" : "#ffbe5c" }
-                    Text {
-                        text: icp.anisetteUrl
-                        color: Theme.secondary(0.7); font.pixelSize: 13
-                        elide: Text.ElideMiddle; Layout.fillWidth: true
-                        horizontalAlignment: Text.AlignRight
-                        textFormat: Text.PlainText
+            Text { text: root.tt("Settings"); color: Theme.text; font.pixelSize: 26; font.weight: Font.Bold }
+
+            // ---------------------------------------------------------- connection
+            Section {
+                title: root.tt("Connection")
+                SettingRow {
+                    icon: "globe"
+                    title: root.tt("Anisette service")
+                    detail: icp.anisetteUrl
+                    Rectangle {
+                        width: 9; height: 9; radius: 4.5
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: icp.anisetteState === 1 ? "#5fd68e" : icp.anisetteState === 0 ? "#ff7a7a" : "#ffbe5c"
                     }
-                    GlassButton { compact: true; text: icp.tr("Set Up…", icp.languageRevision); onClicked: root.requestSetup() }
+                    GlassButton { compact: true; text: root.tt("Set Up…"); onClicked: root.requestSetup() }
                 }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
-                InfoRow { icon: "folder"; title: icp.tr("Session and vault", icp.languageRevision); value: icp.dataDir }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.margins: 14
-                    spacing: 14
-                    Icon { name: "globe"; size: 20; color: Theme.accent }
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        Text { text: icp.tr("Website icons and names", icp.languageRevision); color: Theme.text; font.pixelSize: 14 }
-                        Text {
-                            Layout.fillWidth: true
-                            wrapMode: Text.WordWrap
-                            text: icp.tr("Fetched directly from each saved site over HTTPS, never through an icon service, and stored encrypted on this computer.", icp.languageRevision)
-                            color: Theme.secondary(0.6); font.pixelSize: 12
-                        }
-                    }
-                    GlassButton { compact: true; icon: "sync"; text: icp.tr("Refresh", icp.languageRevision); enabled: icp.fetchIcons; onClicked: icp.refreshIcons() }
+                SettingRow {
+                    visible: icp.runningAppImage || icp.inAppMenu
+                    icon: "grid"
+                    title: root.tt("Applications menu")
                     GlassButton {
                         compact: true
-                        icon: "trash"
-                        implicitWidth: implicitHeight
-                        onClicked: icp.clearIconCache()
-                        ToolTip.visible: trashHover.hovered
-                        ToolTip.delay: 300
-                        ToolTip.text: icp.tr("Clear Icon Cache", icp.languageRevision)
-                        HoverHandler { id: trashHover }
+                        prominent: !icp.inAppMenu
+                        text: icp.inAppMenu ? root.tt("Remove") : root.tt("Add")
+                        onClicked: icp.inAppMenu ? icp.removeFromAppMenu() : icp.addToAppMenu()
                     }
-                    Toggle { checked: icp.fetchIcons; onToggled: (on) => icp.setFetchIcons(on) }
                 }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.margins: 14
-                    spacing: 14
-                    Icon { name: "globe"; size: 20; color: Theme.accent }
-                    Text { text: icp.tr("Language", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true }
+                SettingRow {
+                    last: true
+                    icon: "person"
+                    title: root.tt("Status")
+                    detail: icp.busy ? icp.status : (icp.signedIn ? root.tt("Signed in · {n} passwords").replace("{n}", icp.items.length) : root.tt("Not signed in"))
+                }
+            }
+
+            // ---------------------------------------------------------- interface
+            Section {
+                title: root.tt("Interface")
+                SettingRow {
+                    icon: "globe"
+                    title: root.tt("Language")
                     GlassButton {
                         id: languageButton
                         compact: true
@@ -92,190 +75,250 @@ Glass {
                             return options[0].name
                         }
                         onClicked: languageMenu.open()
-                        Popup {
+                        GlassMenu {
                             id: languageMenu
                             y: languageButton.height + 6
                             x: languageButton.width - width
-                            width: 230
-                            padding: 6
-                            modal: false
-                            focus: true
-                            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-                            enter: Transition { ParallelAnimation {
-                                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 180; easing.type: Easing.OutCubic }
-                                NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: 260; easing.type: Easing.OutBack }
-                            } }
-                            exit: Transition { NumberAnimation { property: "opacity"; to: 0; duration: 120 } }
-                            background: Rectangle {
-                                radius: 14
-                                color: Theme.popup
-                                border.width: 1
-                                border.color: Theme.overlay(0.18)
+                            entries: {
+                                var out = []
+                                var options = icp.languageOptions
+                                for (var i = 0; i < options.length; i++)
+                                    out.push({ text: options[i].name, checked: options[i].code === icp.languagePreference })
+                                return out
                             }
-                            contentItem: Column {
-                                spacing: 2
-                                Repeater {
-                                    model: icp.languageOptions
-                                    delegate: Rectangle {
-                                        id: option
-                                        required property var modelData
-                                        width: 218
-                                        height: 34
-                                        radius: 9
-                                        color: optionMouse.containsMouse ? Theme.overlay(0.10) : "transparent"
-                                        Row {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.left: parent.left
-                                            anchors.leftMargin: 10
-                                            spacing: 8
-                                            Icon {
-                                                name: "check"; size: 14; color: Theme.accent
-                                                opacity: option.modelData.code === icp.languagePreference ? 1 : 0
-                                                anchors.verticalCenter: parent.verticalCenter
-                                            }
-                                            Text {
-                                                text: option.modelData.name
-                                                color: Theme.text; font.pixelSize: 13
-                                                anchors.verticalCenter: parent.verticalCenter
-                                            }
-                                        }
-                                        MouseArea {
-                                            id: optionMouse
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: { icp.setLanguage(option.modelData.code); languageMenu.close() }
-                                        }
-                                    }
-                                }
-                            }
+                            onPicked: (index) => icp.setLanguage(icp.languageOptions[index].code)
                         }
                     }
                 }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.margins: 14
-                    spacing: 14
-                    Icon { name: "eye"; size: 20; color: Theme.accent }
-                    Text { text: icp.tr("Appearance", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
-                    Row {
-                        spacing: 4
-                        Repeater {
-                            model: [{ key: "system", label: "System" }, { key: "light", label: "Light" }, { key: "dark", label: "Dark" }]
-                            delegate: GlassButton {
-                                required property var modelData
-                                compact: true
-                                prominent: icp.appearance === modelData.key
-                                text: icp.tr(modelData.label, icp.languageRevision)
-                                onClicked: icp.setAppearance(modelData.key)
-                            }
-                        }
+                SettingRow {
+                    icon: "eye"
+                    title: root.tt("Appearance")
+                    Segmented {
+                        options: [{ key: "system", label: root.tt("System") }, { key: "light", label: root.tt("Light") }, { key: "dark", label: root.tt("Dark") }]
+                        current: icp.appearance
+                        onPicked: (key) => icp.setAppearance(key)
                     }
                 }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.margins: 14
-                    spacing: 14
-                    Icon { name: "wand"; size: 20; color: Theme.accent }
-                    Text { text: icp.tr("Animations and effects", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                SettingRow {
+                    icon: "sidebar"
+                    title: root.tt("Sidebar")
+                    Segmented {
+                        options: [{ key: "full", label: root.tt("Full") }, { key: "compact", label: root.tt("Compact") }]
+                        current: icp.sidebarStyle
+                        onPicked: (key) => icp.setSidebarMode(key)
+                    }
+                }
+                SettingRow {
+                    last: true
+                    icon: "wand"
+                    title: root.tt("Animations and effects")
                     Toggle { checked: icp.animations; onToggled: (on) => icp.setAnimations(on) }
                 }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.margins: 14
-                    spacing: 14
-                    Icon { name: "sidebar"; size: 20; color: Theme.accent }
-                    Text { text: icp.tr("Sidebar", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
-                    Row {
-                        spacing: 4
-                        Repeater {
-                            model: [{ key: "full", label: "Full" }, { key: "compact", label: "Compact" }]
-                            delegate: GlassButton {
-                                required property var modelData
-                                compact: true
-                                prominent: icp.sidebarStyle === modelData.key
-                                text: icp.tr(modelData.label, icp.languageRevision)
-                                onClicked: icp.setSidebarMode(modelData.key)
-                            }
-                        }
-                    }
-                }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
-                RowLayout {
-                    visible: icp.runningAppImage || icp.inAppMenu
-                    Layout.fillWidth: true
-                    Layout.margins: 14
-                    spacing: 14
-                    Icon { name: "grid"; size: 20; color: Theme.accent }
-                    Text { text: icp.tr("Applications menu", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+            }
+
+            // ---------------------------------------------------------- data
+            Section {
+                title: root.tt("Data")
+                SettingRow {
+                    icon: "globe"
+                    title: root.tt("Website icons and names")
+                    detail: root.tt("Fetched directly from each saved site over HTTPS, never through an icon service, and stored encrypted on this computer.")
                     GlassButton {
                         compact: true
-                        prominent: !icp.inAppMenu
-                        text: icp.inAppMenu ? icp.tr("Remove", icp.languageRevision) : icp.tr("Add", icp.languageRevision)
-                        onClicked: icp.inAppMenu ? icp.removeFromAppMenu() : icp.addToAppMenu()
+                        icon: "sync"
+                        implicitWidth: implicitHeight
+                        enabled: icp.fetchIcons
+                        onClicked: icp.refreshIcons()
+                        ToolTip.visible: refreshHover.hovered
+                        ToolTip.delay: 300
+                        ToolTip.text: root.tt("Refresh")
+                        HoverHandler { id: refreshHover }
+                    }
+                    GlassButton {
+                        compact: true
+                        icon: "trash"
+                        implicitWidth: implicitHeight
+                        onClicked: icp.clearIconCache()
+                        ToolTip.visible: trashHover.hovered
+                        ToolTip.delay: 300
+                        ToolTip.text: root.tt("Clear Icon Cache")
+                        HoverHandler { id: trashHover }
+                    }
+                    Toggle { checked: icp.fetchIcons; onToggled: (on) => icp.setFetchIcons(on) }
+                }
+                SettingRow {
+                    last: true
+                    icon: "folder"
+                    title: root.tt("Session and vault")
+                    detail: icp.dataDir
+                }
+            }
+
+            // ---------------------------------------------------------- debug console
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                Text { text: root.tt("Debug console"); color: Theme.secondary(0.6); font.pixelSize: 12; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.6; Layout.fillWidth: true; elide: Text.ElideRight }
+                GlassButton {
+                    compact: true
+                    text: root.follow ? root.tt("Following") : root.tt("Follow")
+                    onClicked: { root.follow = !root.follow; if (root.follow) console_.positionViewAtEnd() }
+                }
+                GlassButton { compact: true; icon: "copy"; text: root.tt("Copy Log"); onClicked: icp.copyLog() }
+                GlassButton { compact: true; icon: "trash"; text: root.tt("Clear"); onClicked: icp.clearLog() }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 300
+                radius: 16
+                color: Theme.inset(0.55)
+                border.width: 1
+                border.color: Theme.overlay(0.10)
+
+                ListView {
+                    id: console_
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    clip: true
+                    model: icp.log
+                    boundsBehavior: Flickable.StopAtBounds
+                    onCountChanged: if (root.follow) Qt.callLater(positionViewAtEnd)
+                    ScrollBar.vertical: ScrollBar {
+                        contentItem: Rectangle { implicitWidth: 5; radius: 3; color: Theme.overlay(0.28) }
+                    }
+                    delegate: Text {
+                        required property var modelData
+                        width: ListView.view.width - 10
+                        wrapMode: Text.WrapAnywhere
+                        textFormat: Text.PlainText
+                        font.family: "DejaVu Sans Mono"
+                        font.pixelSize: 12
+                        lineHeight: 1.15
+                        color: modelData.level === "error" ? (Theme.dark ? "#ff9b9b" : "#b3261e")
+                             : modelData.level === "warning" ? (Theme.dark ? "#ffd27a" : "#8a5a00")
+                             : modelData.level === "debug" ? Theme.secondary(0.5)
+                             : Theme.consoleText
+                        text: modelData.time + "  " + modelData.text
+                    }
+                    Text {
+                        anchors.centerIn: parent
+                        visible: console_.count === 0
+                        text: root.tt("Engine activity appears here step by step.")
+                        color: Theme.secondary(0.45); font.pixelSize: 13
                     }
                 }
-                Rectangle { visible: icp.runningAppImage || icp.inAppMenu; Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
-                InfoRow { icon: "person"; title: icp.tr("Status", icp.languageRevision); value: icp.busy ? icp.status : (icp.signedIn ? icp.tr("Signed in · {n} passwords", icp.languageRevision).replace("{n}", icp.items.length) : icp.tr("Not signed in", icp.languageRevision)) }
             }
         }
+    }
 
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.topMargin: 6
-            spacing: 10
-            Icon { name: "terminal"; size: 18; color: Theme.accent }
-            Text { text: icp.tr("Debug console", icp.languageRevision); color: Theme.text; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
-            GlassButton {
-                compact: true
-                text: root.follow ? icp.tr("Following", icp.languageRevision) : icp.tr("Follow", icp.languageRevision)
-                onClicked: { root.follow = !root.follow; if (root.follow) console_.positionViewAtEnd() }
-            }
-            GlassButton { compact: true; icon: "copy"; text: icp.tr("Copy Log", icp.languageRevision); onClicked: icp.copyLog() }
-            GlassButton { compact: true; text: icp.tr("Clear", icp.languageRevision); onClicked: icp.clearLog() }
+    // ------------------------------------------------------------------ building blocks
+    component Section: ColumnLayout {
+        id: section
+        property string title
+        default property alias rows: inner.data
+        Layout.fillWidth: true
+        spacing: 8
+        Text {
+            text: section.title
+            color: Theme.secondary(0.6); font.pixelSize: 12; font.weight: Font.DemiBold
+            font.capitalization: Font.AllUppercase; font.letterSpacing: 0.6
+            Layout.leftMargin: 4
         }
-
         Rectangle {
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            implicitHeight: inner.implicitHeight
             radius: 16
-            color: Theme.inset(0.55)
+            color: Theme.inset(0.28)
             border.width: 1
             border.color: Theme.overlay(0.10)
+            ColumnLayout { id: inner; width: parent.width; spacing: 0 }
+        }
+    }
 
-            ListView {
-                id: console_
-                anchors.fill: parent
-                anchors.margins: 12
-                clip: true
-                model: icp.log
-                boundsBehavior: Flickable.StopAtBounds
-                onCountChanged: if (root.follow) Qt.callLater(positionViewAtEnd)
-                ScrollBar.vertical: ScrollBar {
-                    contentItem: Rectangle { implicitWidth: 5; radius: 3; color: Theme.overlay(0.28) }
-                }
-                delegate: Text {
+    component SettingRow: Item {
+        id: row
+        property string icon
+        property string title
+        property string detail: ""
+        property bool last: false
+        default property alias controls: controlRow.data
+        Layout.fillWidth: true
+        implicitHeight: Math.max(58, texts.implicitHeight + 26)
+
+        Icon { id: rowIcon; name: row.icon; size: 20; color: Theme.accent; anchors.left: parent.left; anchors.leftMargin: 16; anchors.verticalCenter: parent.verticalCenter }
+        ColumnLayout {
+            id: texts
+            anchors.left: rowIcon.right
+            anchors.leftMargin: 14
+            anchors.right: controlRow.left
+            anchors.rightMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 2
+            Text { Layout.fillWidth: true; text: row.title; color: Theme.text; font.pixelSize: 14; elide: Text.ElideRight }
+            Text {
+                visible: row.detail !== ""
+                Layout.fillWidth: true
+                text: row.detail
+                textFormat: Text.PlainText
+                wrapMode: Text.WordWrap
+                maximumLineCount: 3
+                elide: Text.ElideRight
+                color: Theme.secondary(0.6); font.pixelSize: 12; lineHeight: 1.15
+            }
+        }
+        RowLayout {
+            id: controlRow
+            anchors.right: parent.right
+            anchors.rightMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 8
+        }
+        Rectangle {
+            visible: !row.last
+            anchors.left: texts.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 1
+            color: Theme.overlay(0.08)
+        }
+    }
+
+    component Segmented: Rectangle {
+        id: seg
+        property var options: []
+        property string current: ""
+        signal picked(string key)
+        implicitWidth: segRow.implicitWidth + 6
+        implicitHeight: 34
+        radius: 17
+        color: Theme.overlay(0.08)
+        border.width: 1
+        border.color: Theme.overlay(0.12)
+        Row {
+            id: segRow
+            anchors.centerIn: parent
+            spacing: 2
+            Repeater {
+                model: seg.options
+                delegate: Rectangle {
+                    id: segItem
                     required property var modelData
-                    width: ListView.view.width - 10
-                    wrapMode: Text.WrapAnywhere
-                    textFormat: Text.PlainText
-                    font.family: "DejaVu Sans Mono"
-                    font.pixelSize: 12
-                    lineHeight: 1.15
-                    color: modelData.level === "error" ? (Theme.dark ? "#ff9b9b" : "#b3261e")
-                         : modelData.level === "warning" ? (Theme.dark ? "#ffd27a" : "#8a5a00")
-                         : modelData.level === "debug" ? Theme.secondary(0.5)
-                         : Theme.consoleText
-                    text: modelData.time + "  " + modelData.text
-                }
-                Text {
-                    anchors.centerIn: parent
-                    visible: console_.count === 0
-                    text: icp.tr("Engine activity appears here step by step.", icp.languageRevision)
-                    color: Theme.secondary(0.45); font.pixelSize: 13
+                    readonly property bool selected: seg.current === modelData.key
+                    width: segLabel.implicitWidth + 22
+                    height: 28
+                    radius: 14
+                    color: selected ? "#3a8bff" : (segMouse.containsMouse ? Theme.overlay(0.10) : "transparent")
+                    Behavior on color { enabled: icp.animations; ColorAnimation { duration: 140 } }
+                    Text {
+                        id: segLabel
+                        anchors.centerIn: parent
+                        text: segItem.modelData.label
+                        color: segItem.selected ? "white" : Theme.text
+                        font.pixelSize: 13
+                        font.weight: segItem.selected ? Font.DemiBold : Font.Normal
+                    }
+                    MouseArea { id: segMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: seg.picked(segItem.modelData.key) }
                 }
             }
         }
@@ -300,23 +343,5 @@ Glass {
             Behavior on x { enabled: icp.animations; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
         }
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: toggle.toggled(!toggle.checked) }
-    }
-
-    component InfoRow: RowLayout {
-        property string icon
-        property string title
-        property string value
-        Layout.fillWidth: true
-        Layout.margins: 14
-        spacing: 14
-        Icon { name: parent.icon; size: 20; color: Theme.accent }
-        Text { text: parent.title; color: Theme.text; font.pixelSize: 14; Layout.preferredWidth: 150 }
-        Text {
-            text: parent.value
-            color: Theme.secondary(0.7); font.pixelSize: 13
-            elide: Text.ElideMiddle; Layout.fillWidth: true
-            horizontalAlignment: Text.AlignRight
-            textFormat: Text.PlainText
-        }
     }
 }

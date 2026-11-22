@@ -62,7 +62,9 @@ def _describe_bottle(b: dict) -> str:
     cm = meta.get("ClientMetadata") or {}
     name = (cm.get("device_model") or cm.get("model") or cm.get("ProductType")
             or cm.get("device_name") or cm.get("deviceName"))
-    return f"{name} ({meta.get('serial')})"
+    left = meta.get("_remaining_attempts")
+    suffix = f" - {left} of 10 attempts left" if isinstance(left, int) else ""
+    return f"{name} ({meta.get('serial')}){suffix}"
 
 
 def _select_bottle(bottles: list[dict]) -> dict | None:

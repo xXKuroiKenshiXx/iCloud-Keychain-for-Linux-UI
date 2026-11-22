@@ -91,5 +91,14 @@ class AnisetteRsTests(unittest.TestCase):
             self.assertEqual(setup.rs_missing(), [])
 
 
+
+class EscrowAttemptsTests(unittest.TestCase):
+    def test_remaining_attempts_are_read_only_when_reported(self):
+        from icp.escrow.srp import remaining_attempts
+        self.assertEqual(remaining_attempts({"remainingAttempts": 7}), 7)
+        self.assertEqual(remaining_attempts({}, {"remaining_attempts": "3"}), 3)
+        self.assertIsNone(remaining_attempts({"label": "x"}, {"serial": "ABC"}))
+
+
 if __name__ == "__main__":
     unittest.main()
