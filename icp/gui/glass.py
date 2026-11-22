@@ -152,6 +152,8 @@ class Controller(QObject):
     iconsChanged = pyqtSignal()
     languageChanged = pyqtSignal()
     setupChanged = pyqtSignal()
+    sortChanged = pyqtSignal()
+    appearanceChanged = pyqtSignal()
     setupReport = pyqtSignal(str, str)     # kind, text (from the installer thread)
 
     def __init__(self, anisette_url: str | None = None, bridge=None):
@@ -193,6 +195,9 @@ class Controller(QObject):
         configured = self._prefs.get("anisette") or {}
         if configured.get("mode") == "url" and configured.get("url") and not anisette_url:
             self._apply_url(configured["url"])
+        hints = QGuiApplication.styleHints() if QGuiApplication.instance() else None
+        if hints is not None and hasattr(hints, "colorSchemeChanged"):
+            hints.colorSchemeChanged.connect(lambda *_: self._appearance_updated())
         QTimer.singleShot(0, self._load_saved)
         QTimer.singleShot(0, self._autostart_anisette)
 
@@ -271,23 +276,60 @@ class Controller(QObject):
     def anisetteState(self):
         return self._anisette_state
 
+    @pyqtProperty(str, notify=appearanceChanged)
+    def appearance(self):
+        value = self._prefs.get("appearance", "system")
+        return value if value in ("system", "light", "dark") else "system"
+
+    @pyqtProperty(bool, notify=appearanceChanged)
+    def darkMode(self):
+        if self.appearance != "system":
+            return self.appearance == "dark"
+        try:
+            from PyQt6.QtCore import Qt
+            return QGuiApplication.styleHints().colorScheme() != Qt.ColorScheme.Light
+        except Exception:  # noqa: BLE001 - unknown scheme means dark, the app's home look
+            return True
+
+    @pyqtSlot(str)
+    def setAppearance(self, value: str) -> None:
+        self._prefs["appearance"] = value if value in ("system", "light", "dark") else "system"
+        self._write_prefs()
+        self._appearance_updated()
+
+    def _appearance_updated(self) -> None:
+        self.appearanceChanged.emit()
+        app = QGuiApplication.instance()
+        if app is not None:
+            app.setWindowIcon(QIcon(str(QML_DIR / ("icon-dark.svg" if self.darkMode else "icon-light.svg"))))
+
     @pyqtProperty(bool, notify=changed)
     def animations(self):
         return bool(self._prefs.get("animations", True))
 
-    @pyqtProperty(str, notify=changed)
+    @pyqtProperty(str, notify=sortChanged)
     def sortKey(self):
         value = self._prefs.get("sort", "website")
         return value if value in SORT_KEYS else "website"
 
-    @pyqtProperty(bool, notify=changed)
+    @pyqtProperty(bool, notify=sortChanged)
     def sortDescending(self):
         return bool(self._prefs.get("sort_desc", False))
 
     @pyqtProperty(str, notify=changed)
-    def sidebarMode(self):
+    def sidebarStyle(self):
         value = self._prefs.get("sidebar", "full")
-        return value if value in SIDEBAR_MODES else "full"
+        return value if value in ("full", "compact") else "full"
+
+    @pyqtProperty(str, notify=changed)
+    def sidebarMode(self):
+        return self.sidebarStyle if self._prefs.get("sidebar_visible", True) else "hidden"
+
+    @pyqtSlot()
+    def toggleSidebar(self) -> None:
+        self._prefs["sidebar_visible"] = not self._prefs.get("sidebar_visible", True)
+        self._write_prefs()
+        self.changed.emit()
 
     @pyqtSlot(bool)
     def setAnimations(self, enabled: bool) -> None:
@@ -300,12 +342,16 @@ class Controller(QObject):
         self._prefs["sort"] = key if key in SORT_KEYS else "website"
         self._prefs["sort_desc"] = bool(descending)
         self._write_prefs()
-        self.changed.emit()
-        self._publish()
+        self.sortChanged.emit()
+        QTimer.singleShot(0, self._publish)   # after the menu has closed
 
     @pyqtSlot(str)
     def setSidebarMode(self, mode: str) -> None:
-        self._prefs["sidebar"] = mode if mode in SIDEBAR_MODES else "full"
+        if mode == "hidden":
+            self._prefs["sidebar_visible"] = False
+        else:
+            self._prefs["sidebar"] = mode if mode in ("full", "compact") else "full"
+            self._prefs["sidebar_visible"] = True
         self._write_prefs()
         self.changed.emit()
 
@@ -473,6 +519,33 @@ class Controller(QObject):
         self._append_log("info", "Installing setup tools with pkexec")
         anisette_setup.install_tools(list(self._setup.get("missing") or []),
                                      lambda kind, text: self.setupReport.emit(kind, text))
+
+    # ---- applications menu (AppImage) -----------------------------------------------------
+    @pyqtProperty(bool, constant=True)
+    def runningAppImage(self):
+        return bool(anisette_setup.appimage_path())
+
+    @pyqtProperty(bool, notify=setupChanged)
+    def inAppMenu(self):
+        return anisette_setup.is_integrated()
+
+    @pyqtSlot()
+    def addToAppMenu(self) -> None:
+        try:
+            target = anisette_setup.integrate(QML_DIR / "icon-dark.svg")
+        except (OSError, RuntimeError) as error:
+            self._append_log("error", f"Could not add to the applications menu: {error}")
+            self.toast.emit(self._t("Couldn't add to the applications menu."))
+            return
+        self._append_log("info", f"Added to the applications menu ({target})")
+        self.toast.emit(self._t("Added to your applications menu"))
+        self.setupChanged.emit()
+
+    @pyqtSlot()
+    def removeFromAppMenu(self) -> None:
+        anisette_setup.unintegrate()
+        self.toast.emit(self._t("Removed from your applications menu"))
+        self.setupChanged.emit()
 
     @pyqtSlot()
     def setupReset(self) -> None:
@@ -803,7 +876,9 @@ class Controller(QObject):
                        "anisette": self._prefs.get("anisette") or {},
                        "animations": bool(self._prefs.get("animations", True)),
                        "sort": self.sortKey, "sort_desc": self.sortDescending,
-                       "sidebar": self.sidebarMode}, handle)
+                       "sidebar": self.sidebarStyle,
+                       "sidebar_visible": bool(self._prefs.get("sidebar_visible", True)),
+                       "appearance": self.appearance}, handle)
 
     # ---- helpers -----------------------------------------------------------------------
     def _clear_prompt(self) -> None:
@@ -866,8 +941,8 @@ def main(argv=None) -> int:
     app = QGuiApplication(sys.argv[:1])
     app.setApplicationName("Passwords")
     app.setDesktopFileName("icloud-keychain")
-    app.setWindowIcon(QIcon(str(QML_DIR / "icon.svg")))
     controller = Controller(args.anisette)
+    controller._appearance_updated()
     engine = create_engine(controller)
     if not engine.rootObjects():
         print("QML failed to load", file=sys.stderr)

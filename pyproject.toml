@@ -23,7 +23,7 @@ icp = "icp.cli.app:main"
 icp-gui = "icp.gui.glass:main"
 
 [tool.setuptools.package-data]
-"icp.gui" = ["qml/*.qml", "qml/*.svg"]
+"icp.gui" = ["qml/*.qml", "qml/*.svg", "qml/qmldir"]
 
 [tool.setuptools.packages.find]
 include = ["icp*"]

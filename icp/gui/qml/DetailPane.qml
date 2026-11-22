@@ -40,16 +40,16 @@ Item {
         anchors.centerIn: parent
         visible: !root.entry
         spacing: 12
-        Icon { Layout.alignment: Qt.AlignHCenter; name: "lock"; size: 44; stroke: 1.4; color: Qt.rgba(0.86, 0.9, 1, 0.45) }
+        Icon { Layout.alignment: Qt.AlignHCenter; name: "lock"; size: 44; stroke: 1.4; color: Theme.secondary(0.45) }
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: icp.tr("Select a password", icp.languageRevision)
-            color: Qt.rgba(0.92, 0.95, 1, 0.75); font.pixelSize: 17; font.weight: Font.DemiBold
+            color: Theme.secondary(0.75); font.pixelSize: 17; font.weight: Font.DemiBold
         }
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: icp.tr("{n} passwords in your iCloud Keychain", icp.languageRevision).replace("{n}", icp.items.length)
-            color: Qt.rgba(0.86, 0.9, 1, 0.5); font.pixelSize: 13
+            color: Theme.secondary(0.5); font.pixelSize: 13
         }
     }
 
@@ -75,7 +75,7 @@ Item {
                     Text {
                         text: root.shownName
                         textFormat: Text.PlainText
-                        color: "white"; font.pixelSize: 26; font.weight: Font.Bold
+                        color: Theme.text; font.pixelSize: 26; font.weight: Font.Bold
                         elide: Text.ElideRight; Layout.maximumWidth: column.width - 90
                     }
                     Row {
@@ -91,7 +91,7 @@ Item {
                         visible: root.entry && root.entry.group
                         text: root.entry ? icp.tr("Shared group · {g}", icp.languageRevision).replace("{g}", root.entry.group) : ""
                         textFormat: Text.PlainText
-                        color: Qt.rgba(0.86, 0.9, 1, 0.6); font.pixelSize: 13
+                        color: Theme.secondary(0.6); font.pixelSize: 13
                     }
                 }
             }
@@ -101,9 +101,9 @@ Item {
                 Layout.fillWidth: true
                 implicitHeight: fields.implicitHeight
                 radius: 16
-                color: Qt.rgba(0, 0.02, 0.08, 0.28)
+                color: Theme.inset(0.28)
                 border.width: 1
-                border.color: Qt.rgba(1, 1, 1, 0.10)
+                border.color: Theme.overlay(0.10)
 
                 ColumnLayout {
                     id: fields
@@ -141,7 +141,7 @@ Item {
                         visible: root.entry && !!root.entry.site
                         title: icp.tr("Website", icp.languageRevision)
                         value: root.entry ? root.entry.site : ""
-                        valueColor: "#8ec2ff"
+                        valueColor: Theme.accent
                         copyable: true
                         onCopy: root.copyRequested(root.entry.site)
                     }
@@ -152,20 +152,20 @@ Item {
                 visible: root.entry && !!root.entry.notes
                 Layout.fillWidth: true
                 spacing: 8
-                Text { text: icp.tr("Notes", icp.languageRevision); color: Qt.rgba(0.86, 0.9, 1, 0.6); font.pixelSize: 12 + 1; font.weight: Font.DemiBold }
+                Text { text: icp.tr("Notes", icp.languageRevision); color: Theme.secondary(0.6); font.pixelSize: 12 + 1; font.weight: Font.DemiBold }
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: notes.implicitHeight + 28
                     radius: 16
-                    color: Qt.rgba(0, 0.02, 0.08, 0.28)
+                    color: Theme.inset(0.28)
                     border.width: 1
-                    border.color: Qt.rgba(1, 1, 1, 0.10)
+                    border.color: Theme.overlay(0.10)
                     Text {
                         id: notes
                         anchors.fill: parent
                         anchors.margins: 14
                         text: root.entry ? (root.entry.notes || "") : ""
-                        color: "white"; font.pixelSize: 13 + 1
+                        color: Theme.text; font.pixelSize: 13 + 1
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
                     }
@@ -178,7 +178,7 @@ Item {
         Layout.fillWidth: true
         Layout.leftMargin: 16
         implicitHeight: 1
-        color: Qt.rgba(1, 1, 1, 0.08)
+        color: Theme.overlay(0.08)
     }
 
     component FieldRow: Item {
@@ -189,7 +189,7 @@ Item {
         property string extraIcon: ""
         property bool copyable: false
         property bool mono: false
-        property color valueColor: "white"
+        property color valueColor: Theme.text
         signal copy()
         signal extra()
         Layout.fillWidth: true
@@ -202,7 +202,7 @@ Item {
             anchors.rightMargin: 10
             anchors.verticalCenter: parent.verticalCenter
             spacing: 3
-            Text { text: fieldRow.title; color: Qt.rgba(0.86, 0.9, 1, 0.58); font.pixelSize: 12 }
+            Text { text: fieldRow.title; color: Theme.secondary(0.58); font.pixelSize: 12 }
             Text {
                 text: fieldRow.value
                 color: fieldRow.valueColor
@@ -223,7 +223,7 @@ Item {
             Text {
                 visible: fieldRow.trailing !== ""
                 text: fieldRow.trailing
-                color: Qt.rgba(0.86, 0.9, 1, 0.55); font.pixelSize: 12
+                color: Theme.secondary(0.55); font.pixelSize: 12
                 font.features: ({ "tnum": 1 })
                 anchors.verticalCenter: parent.verticalCenter
             }

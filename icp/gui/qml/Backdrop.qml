@@ -9,9 +9,9 @@ Item {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.0; color: "#0b1226" }
-            GradientStop { position: 0.6; color: "#080c1a" }
-            GradientStop { position: 1.0; color: "#05060e" }
+            GradientStop { position: 0.0; color: Theme.backdropStops[0] }
+            GradientStop { position: 0.6; color: Theme.backdropStops[1] }
+            GradientStop { position: 1.0; color: Theme.backdropStops[2] }
         }
     }
 
@@ -44,8 +44,8 @@ Item {
                 fillGradient: RadialGradient {
                     centerX: field.diameter / 2; centerY: field.diameter / 2; centerRadius: field.diameter / 2
                     focalX: centerX; focalY: centerY
-                    GradientStop { position: 0.0; color: Qt.alpha(field.modelData.c, field.modelData.a) }
-                    GradientStop { position: 0.45; color: Qt.alpha(field.modelData.c, field.modelData.a * 0.45) }
+                    GradientStop { position: 0.0; color: Qt.alpha(field.modelData.c, field.modelData.a * Theme.fieldStrength) }
+                    GradientStop { position: 0.45; color: Qt.alpha(field.modelData.c, field.modelData.a * 0.45 * Theme.fieldStrength) }
                     GradientStop { position: 1.0; color: Qt.alpha(field.modelData.c, 0) }
                 }
                 PathRectangle { x: 0; y: 0; width: field.diameter; height: field.diameter }
@@ -58,7 +58,7 @@ Item {
         anchors.fill: parent
         gradient: Gradient {
             GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.0) }
-            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.30) }
+            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, Theme.vignette) }
         }
     }
 }

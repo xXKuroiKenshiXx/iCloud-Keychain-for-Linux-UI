@@ -51,5 +51,24 @@ class SetupTests(unittest.TestCase):
         self.assertNotIn(("step", "build"), reports)
 
 
+
+class DesktopIntegrationTests(unittest.TestCase):
+    def test_appimage_is_copied_and_added_to_the_menu(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            image = Path(tmp) / "download.AppImage"
+            image.write_bytes(b"\x7fELF")
+            icon = Path(tmp) / "icon.svg"
+            icon.write_text("<svg/>")
+            env = {"APPIMAGE": str(image), "XDG_DATA_HOME": str(Path(tmp) / "share"), "HOME": tmp}
+            with mock.patch.dict(os.environ, env), mock.patch("pathlib.Path.home", return_value=Path(tmp)):
+                target = Path(setup.integrate(icon))
+                entry = setup.desktop_entry().read_text()
+                self.assertTrue(target.is_file() and os.access(target, os.X_OK))
+                self.assertIn(f'Exec="{target}"', entry)
+                self.assertTrue(setup.is_integrated())
+                setup.unintegrate()
+                self.assertFalse(setup.is_integrated())
+
+
 if __name__ == "__main__":
     unittest.main()

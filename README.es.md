@@ -34,6 +34,9 @@ ICP_ANISETTE_URL=http://127.0.0.1:6969 ./iCloud-Keychain-x86_64.AppImage        
 ICP_ANISETTE_URL=http://127.0.0.1:6969 ./iCloud-Keychain-x86_64.AppImage --cli status
 ```
 
+Al abrirlo ofrece agregarse a tu menú de aplicaciones (se copia a `~/Applications` y crea
+la entrada con su ícono; desde Ajustes se puede quitar).
+
 **Sistemas compatibles:** Linux x86 de 64 bits con glibc 2.34 o más nuevo: Ubuntu 22.04+,
 Debian 12+, Fedora 35+, Linux Mint 21+, Arch, Manjaro y openSUSE Tumbleweed. Alpine (musl) y
 equipos ARM no son compatibles con el AppImage; ahí se usa desde el código fuente. La ventana
@@ -106,7 +109,8 @@ La barra sobre la lista ordena por sitio web, título, fecha de edición o de cr
 (ascendente o descendente), y su menú **Más** genera una contraseña segura
 (`xxxxxx-xxxxxx-xxxxxx`, con una fuente aleatoria criptográfica) o exporta todas las contraseñas
 a un CSV con las mismas columnas que usa Apple (el archivo queda legible solo por vos). La barra
-lateral puede ser completa, compacta u oculta, y en Ajustes se pueden apagar todas las
+lateral puede ser completa o compacta y se oculta con el botón de la barra; la apariencia
+sigue al sistema o queda en claro u oscuro, y en Ajustes se pueden apagar todas las
 animaciones y efectos. Agregar, editar, eliminar e importar contraseñas todavía no está
 disponible: el motor solo lee el llavero.
 

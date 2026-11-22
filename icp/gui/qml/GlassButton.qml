@@ -27,16 +27,16 @@ Item {
             GradientStop {
                 position: 0
                 color: root.prominent ? (root.destructive ? "#ff6b6b" : "#5aa3ff")
-                                      : Qt.rgba(1, 1, 1, mouse.containsMouse ? 0.20 : 0.12)
+                                      : Theme.overlay(mouse.containsMouse ? 0.20 : 0.12)
             }
             GradientStop {
                 position: 1
                 color: root.prominent ? (root.destructive ? "#e0414b" : "#2f7bf6")
-                                      : Qt.rgba(1, 1, 1, mouse.containsMouse ? 0.12 : 0.06)
+                                      : Theme.overlay(mouse.containsMouse ? 0.12 : 0.06)
             }
         }
         border.width: 1
-        border.color: root.activeFocus ? "#9cc8ff" : Qt.rgba(1, 1, 1, root.prominent ? 0.35 : 0.18)
+        border.color: root.activeFocus ? "#9cc8ff" : root.prominent ? Qt.rgba(1, 1, 1, 0.35) : Theme.overlay(0.18)
     }
 
     Row {
@@ -47,13 +47,13 @@ Item {
             visible: root.icon !== ""
             name: root.icon
             size: root.compact ? 14 : 16
-            color: "white"
+            color: root.prominent ? "white" : Theme.text
             anchors.verticalCenter: parent.verticalCenter
         }
         Text {
             text: root.text
             visible: root.text !== ""
-            color: "white"
+            color: root.prominent ? "white" : Theme.text
             font.pixelSize: root.compact ? 13 : 14
             font.weight: Font.DemiBold
             anchors.verticalCenter: parent.verticalCenter

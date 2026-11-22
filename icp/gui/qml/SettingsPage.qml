@@ -13,15 +13,15 @@ Glass {
         anchors.margins: 28
         spacing: 18
 
-        Text { text: icp.tr("Settings", icp.languageRevision); color: "white"; font.pixelSize: 26; font.weight: Font.Bold }
+        Text { text: icp.tr("Settings", icp.languageRevision); color: Theme.text; font.pixelSize: 26; font.weight: Font.Bold }
 
         Rectangle {
             Layout.fillWidth: true
             implicitHeight: info.implicitHeight
             radius: 16
-            color: Qt.rgba(0, 0.02, 0.08, 0.28)
+            color: Theme.inset(0.28)
             border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.10)
+            border.color: Theme.overlay(0.10)
             ColumnLayout {
                 id: info
                 width: parent.width
@@ -30,47 +30,47 @@ Glass {
                     Layout.fillWidth: true
                     Layout.margins: 14
                     spacing: 14
-                    Icon { name: "globe"; size: 20; color: "#8ec2ff" }
-                    Text { text: icp.tr("Anisette service", icp.languageRevision); color: "white"; font.pixelSize: 14; Layout.preferredWidth: 150; elide: Text.ElideRight }
+                    Icon { name: "globe"; size: 20; color: Theme.accent }
+                    Text { text: icp.tr("Anisette service", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.preferredWidth: 150; elide: Text.ElideRight }
                     Rectangle { width: 8; height: 8; radius: 4; color: icp.anisetteState === 1 ? "#5fd68e" : icp.anisetteState === 0 ? "#ff7a7a" : "#ffbe5c" }
                     Text {
                         text: icp.anisetteUrl
-                        color: Qt.rgba(0.86, 0.9, 1, 0.7); font.pixelSize: 13
+                        color: Theme.secondary(0.7); font.pixelSize: 13
                         elide: Text.ElideMiddle; Layout.fillWidth: true
                         horizontalAlignment: Text.AlignRight
                         textFormat: Text.PlainText
                     }
                     GlassButton { compact: true; text: icp.tr("Set Up…", icp.languageRevision); onClicked: root.requestSetup() }
                 }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
                 InfoRow { icon: "folder"; title: icp.tr("Session and vault", icp.languageRevision); value: icp.dataDir }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.margins: 14
                     spacing: 14
-                    Icon { name: "globe"; size: 20; color: "#8ec2ff" }
+                    Icon { name: "globe"; size: 20; color: Theme.accent }
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        Text { text: icp.tr("Website icons and names", icp.languageRevision); color: "white"; font.pixelSize: 14 }
+                        Text { text: icp.tr("Website icons and names", icp.languageRevision); color: Theme.text; font.pixelSize: 14 }
                         Text {
                             Layout.fillWidth: true
                             wrapMode: Text.WordWrap
                             text: icp.tr("Fetched directly from each saved site over HTTPS, never through an icon service, and stored encrypted on this computer.", icp.languageRevision)
-                            color: Qt.rgba(0.86, 0.9, 1, 0.6); font.pixelSize: 12
+                            color: Theme.secondary(0.6); font.pixelSize: 12
                         }
                     }
                     GlassButton { compact: true; icon: "sync"; text: icp.tr("Refresh", icp.languageRevision); enabled: icp.fetchIcons; onClicked: icp.refreshIcons() }
                     Toggle { checked: icp.fetchIcons; onToggled: (on) => icp.setFetchIcons(on) }
                 }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.margins: 14
                     spacing: 14
-                    Icon { name: "globe"; size: 20; color: "#8ec2ff" }
-                    Text { text: icp.tr("Language", icp.languageRevision); color: "white"; font.pixelSize: 14; Layout.fillWidth: true }
+                    Icon { name: "globe"; size: 20; color: Theme.accent }
+                    Text { text: icp.tr("Language", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true }
                     GlassButton {
                         id: languageButton
                         compact: true
@@ -98,9 +98,9 @@ Glass {
                             exit: Transition { NumberAnimation { property: "opacity"; to: 0; duration: 120 } }
                             background: Rectangle {
                                 radius: 14
-                                color: Qt.rgba(0.07, 0.1, 0.18, 0.96)
+                                color: Theme.popup
                                 border.width: 1
-                                border.color: Qt.rgba(1, 1, 1, 0.18)
+                                border.color: Theme.overlay(0.18)
                             }
                             contentItem: Column {
                                 spacing: 2
@@ -112,20 +112,20 @@ Glass {
                                         width: 218
                                         height: 34
                                         radius: 9
-                                        color: optionMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent"
+                                        color: optionMouse.containsMouse ? Theme.overlay(0.10) : "transparent"
                                         Row {
                                             anchors.verticalCenter: parent.verticalCenter
                                             anchors.left: parent.left
                                             anchors.leftMargin: 10
                                             spacing: 8
                                             Icon {
-                                                name: "check"; size: 14; color: "#8ec2ff"
+                                                name: "check"; size: 14; color: Theme.accent
                                                 opacity: option.modelData.code === icp.languagePreference ? 1 : 0
                                                 anchors.verticalCenter: parent.verticalCenter
                                             }
                                             Text {
                                                 text: option.modelData.name
-                                                color: "white"; font.pixelSize: 13
+                                                color: Theme.text; font.pixelSize: 13
                                                 anchors.verticalCenter: parent.verticalCenter
                                             }
                                         }
@@ -142,37 +142,73 @@ Glass {
                         }
                     }
                 }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.margins: 14
                     spacing: 14
-                    Icon { name: "wand"; size: 20; color: "#8ec2ff" }
-                    Text { text: icp.tr("Animations and effects", icp.languageRevision); color: "white"; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
-                    Toggle { checked: icp.animations; onToggled: (on) => icp.setAnimations(on) }
-                }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.margins: 14
-                    spacing: 14
-                    Icon { name: "sidebar"; size: 20; color: "#8ec2ff" }
-                    Text { text: icp.tr("Sidebar", icp.languageRevision); color: "white"; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                    Icon { name: "eye"; size: 20; color: Theme.accent }
+                    Text { text: icp.tr("Appearance", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
                     Row {
                         spacing: 4
                         Repeater {
-                            model: [{ key: "full", label: "Full" }, { key: "compact", label: "Compact" }, { key: "hidden", label: "Hidden" }]
+                            model: [{ key: "system", label: "System" }, { key: "light", label: "Light" }, { key: "dark", label: "Dark" }]
                             delegate: GlassButton {
                                 required property var modelData
                                 compact: true
-                                prominent: icp.sidebarMode === modelData.key
+                                prominent: icp.appearance === modelData.key
+                                text: icp.tr(modelData.label, icp.languageRevision)
+                                onClicked: icp.setAppearance(modelData.key)
+                            }
+                        }
+                    }
+                }
+                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.margins: 14
+                    spacing: 14
+                    Icon { name: "wand"; size: 20; color: Theme.accent }
+                    Text { text: icp.tr("Animations and effects", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                    Toggle { checked: icp.animations; onToggled: (on) => icp.setAnimations(on) }
+                }
+                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.margins: 14
+                    spacing: 14
+                    Icon { name: "sidebar"; size: 20; color: Theme.accent }
+                    Text { text: icp.tr("Sidebar", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                    Row {
+                        spacing: 4
+                        Repeater {
+                            model: [{ key: "full", label: "Full" }, { key: "compact", label: "Compact" }]
+                            delegate: GlassButton {
+                                required property var modelData
+                                compact: true
+                                prominent: icp.sidebarStyle === modelData.key
                                 text: icp.tr(modelData.label, icp.languageRevision)
                                 onClicked: icp.setSidebarMode(modelData.key)
                             }
                         }
                     }
                 }
-                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
+                RowLayout {
+                    visible: icp.runningAppImage || icp.inAppMenu
+                    Layout.fillWidth: true
+                    Layout.margins: 14
+                    spacing: 14
+                    Icon { name: "grid"; size: 20; color: Theme.accent }
+                    Text { text: icp.tr("Applications menu", icp.languageRevision); color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                    GlassButton {
+                        compact: true
+                        prominent: !icp.inAppMenu
+                        text: icp.inAppMenu ? icp.tr("Remove", icp.languageRevision) : icp.tr("Add", icp.languageRevision)
+                        onClicked: icp.inAppMenu ? icp.removeFromAppMenu() : icp.addToAppMenu()
+                    }
+                }
+                Rectangle { visible: icp.runningAppImage || icp.inAppMenu; Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Theme.overlay(0.08) }
                 InfoRow { icon: "person"; title: icp.tr("Status", icp.languageRevision); value: icp.busy ? icp.status : (icp.signedIn ? icp.tr("Signed in · {n} passwords", icp.languageRevision).replace("{n}", icp.items.length) : icp.tr("Not signed in", icp.languageRevision)) }
             }
         }
@@ -181,8 +217,8 @@ Glass {
             Layout.fillWidth: true
             Layout.topMargin: 6
             spacing: 10
-            Icon { name: "terminal"; size: 18; color: "#8ec2ff" }
-            Text { text: icp.tr("Debug console", icp.languageRevision); color: "white"; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
+            Icon { name: "terminal"; size: 18; color: Theme.accent }
+            Text { text: icp.tr("Debug console", icp.languageRevision); color: Theme.text; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
             GlassButton {
                 compact: true
                 text: root.follow ? icp.tr("Following", icp.languageRevision) : icp.tr("Follow", icp.languageRevision)
@@ -196,9 +232,9 @@ Glass {
             Layout.fillWidth: true
             Layout.fillHeight: true
             radius: 16
-            color: Qt.rgba(0, 0.01, 0.05, 0.55)
+            color: Theme.inset(0.55)
             border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.10)
+            border.color: Theme.overlay(0.10)
 
             ListView {
                 id: console_
@@ -209,7 +245,7 @@ Glass {
                 boundsBehavior: Flickable.StopAtBounds
                 onCountChanged: if (root.follow) Qt.callLater(positionViewAtEnd)
                 ScrollBar.vertical: ScrollBar {
-                    contentItem: Rectangle { implicitWidth: 5; radius: 3; color: Qt.rgba(1, 1, 1, 0.28) }
+                    contentItem: Rectangle { implicitWidth: 5; radius: 3; color: Theme.overlay(0.28) }
                 }
                 delegate: Text {
                     required property var modelData
@@ -219,17 +255,17 @@ Glass {
                     font.family: "DejaVu Sans Mono"
                     font.pixelSize: 12
                     lineHeight: 1.15
-                    color: modelData.level === "error" ? "#ff9b9b"
-                         : modelData.level === "warning" ? "#ffd27a"
-                         : modelData.level === "debug" ? Qt.rgba(0.8, 0.86, 1, 0.5)
-                         : "#d6e4ff"
+                    color: modelData.level === "error" ? (Theme.dark ? "#ff9b9b" : "#b3261e")
+                         : modelData.level === "warning" ? (Theme.dark ? "#ffd27a" : "#8a5a00")
+                         : modelData.level === "debug" ? Theme.secondary(0.5)
+                         : Theme.consoleText
                     text: modelData.time + "  " + modelData.text
                 }
                 Text {
                     anchors.centerIn: parent
                     visible: console_.count === 0
                     text: icp.tr("Engine activity appears here step by step.", icp.languageRevision)
-                    color: Qt.rgba(0.86, 0.9, 1, 0.45); font.pixelSize: 13
+                    color: Theme.secondary(0.45); font.pixelSize: 13
                 }
             }
         }
@@ -242,15 +278,15 @@ Glass {
         implicitWidth: 46
         implicitHeight: 28
         radius: 14
-        color: checked ? "#3a8bff" : Qt.rgba(1, 1, 1, 0.16)
+        color: checked ? "#3a8bff" : Theme.overlay(0.16)
         border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.25)
+        border.color: Theme.overlay(0.25)
         Behavior on color { enabled: icp.animations; ColorAnimation { duration: 160 } }
         Rectangle {
             width: 22; height: 22; radius: 11
             y: 3
             x: toggle.checked ? toggle.width - width - 3 : 3
-            color: "white"
+            color: "#ffffff"
             Behavior on x { enabled: icp.animations; NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
         }
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: toggle.toggled(!toggle.checked) }
@@ -263,11 +299,11 @@ Glass {
         Layout.fillWidth: true
         Layout.margins: 14
         spacing: 14
-        Icon { name: parent.icon; size: 20; color: "#8ec2ff" }
-        Text { text: parent.title; color: "white"; font.pixelSize: 14; Layout.preferredWidth: 150 }
+        Icon { name: parent.icon; size: 20; color: Theme.accent }
+        Text { text: parent.title; color: Theme.text; font.pixelSize: 14; Layout.preferredWidth: 150 }
         Text {
             text: parent.value
-            color: Qt.rgba(0.86, 0.9, 1, 0.7); font.pixelSize: 13
+            color: Theme.secondary(0.7); font.pixelSize: 13
             elide: Text.ElideMiddle; Layout.fillWidth: true
             horizontalAlignment: Text.AlignRight
             textFormat: Text.PlainText

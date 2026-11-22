@@ -11,7 +11,7 @@ ApplicationWindow {
     minimumHeight: 640
     visible: true
     title: icp.tr("Passwords", icp.languageRevision)
-    color: "#05070d"
+    color: Theme.window
     font.family: "Noto Sans"
 
     property string section: "all"          // all | codes | wifi | account | settings
@@ -95,17 +95,20 @@ ApplicationWindow {
 
                 RowLayout {
                     Layout.topMargin: 6
-                    Layout.leftMargin: sidebar.compact ? 2 : 6
+                    Layout.alignment: sidebar.compact ? Qt.AlignHCenter : Qt.AlignLeft
+                    Layout.leftMargin: sidebar.compact ? 0 : 6
                     Layout.bottomMargin: 10
                     spacing: 10
                     Image {
-                        width: 32; height: 32
-                        source: "icon.svg"
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: sidebar.compact ? 40 : 32
+                        Layout.preferredHeight: sidebar.compact ? 40 : 32
+                        source: Theme.dark ? "icon-dark.svg" : "icon-light.svg"
                         sourceSize.width: 64
                         sourceSize.height: 64
                         smooth: true
                     }
-                    Text { visible: !sidebar.compact; text: icp.tr("Passwords", icp.languageRevision); color: "white"; font.pixelSize: 19; font.weight: Font.Bold }
+                    Text { visible: !sidebar.compact; text: icp.tr("Passwords", icp.languageRevision); color: Theme.text; font.pixelSize: 19; font.weight: Font.Bold }
                 }
 
                 Field {
@@ -197,8 +200,8 @@ ApplicationWindow {
                             spacing: 6
                             ToolButton {
                                 icon: "sidebar"
-                                tip: icp.tr("Sidebar", icp.languageRevision)
-                                onClicked: icp.setSidebarMode(icp.sidebarMode === "full" ? "compact" : icp.sidebarMode === "compact" ? "hidden" : "full")
+                                tip: icp.sidebarMode === "hidden" ? icp.tr("Show Sidebar", icp.languageRevision) : icp.tr("Hide Sidebar", icp.languageRevision)
+                                onClicked: icp.toggleSidebar()
                             }
                             Item { Layout.fillWidth: true }
                             ToolButton {
@@ -271,7 +274,7 @@ ApplicationWindow {
                         }
                         Text {
                             text: win.section === "codes" ? icp.tr("Codes", icp.languageRevision) : win.section === "wifi" ? icp.tr("Wi-Fi", icp.languageRevision) : icp.tr("All Passwords", icp.languageRevision)
-                            color: "white"; font.pixelSize: 22; font.weight: Font.Bold
+                            color: Theme.text; font.pixelSize: 22; font.weight: Font.Bold
                             Layout.fillWidth: true
                             Layout.leftMargin: 10
                             Layout.rightMargin: 10
@@ -309,7 +312,7 @@ ApplicationWindow {
                             highlightMoveDuration: icp.animations ? 280 : 0
                             highlightMoveVelocity: -1
                             highlightResizeDuration: 0
-                            property bool animateRows: true
+                            property bool animateRows: false
                             function syncCurrent() {
                                 var s = win.selected, idx = -1
                                 for (var i = 0; s && i < win.visibleItems.length; i++) {
@@ -318,17 +321,19 @@ ApplicationWindow {
                                 }
                                 currentIndex = idx
                             }
-                            onModelChanged: { animateRows = true; rowsSettle.restart(); Qt.callLater(syncCurrent) }
+                            // Rows glide in only when the list first fills, not on every re-sort or sync.
+                            property bool filledOnce: false
+                            onModelChanged: { if (!filledOnce && win.visibleItems.length > 0) { filledOnce = true; animateRows = true; rowsSettle.restart() } Qt.callLater(syncCurrent) }
                             Timer { id: rowsSettle; interval: 900; onTriggered: list.animateRows = false }
                             highlight: Rectangle {
                                 radius: 12
-                                color: Qt.rgba(0.45, 0.65, 1, 0.30)
+                                color: Theme.selection
                                 border.width: 1
-                                border.color: Qt.rgba(1, 1, 1, 0.16)
+                                border.color: Theme.overlay(0.16)
                             }
                             ScrollBar.vertical: ScrollBar {
                                 policy: ScrollBar.AsNeeded
-                                contentItem: Rectangle { implicitWidth: 5; radius: 3; color: Qt.rgba(1, 1, 1, 0.28) }
+                                contentItem: Rectangle { implicitWidth: 5; radius: 3; color: Theme.overlay(0.28) }
                             }
                             delegate: Rectangle {
                                 id: rowRoot
@@ -351,7 +356,7 @@ ApplicationWindow {
                                 height: 56
                                 radius: 12
                                 readonly property bool current: win.selected !== null && win.selected.iconKey === modelData.iconKey && win.selected.username === modelData.username && win.selected.name === modelData.name
-                                color: !current && rowMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : "transparent"
+                                color: !current && rowMouse.containsMouse ? Theme.overlay(0.07) : "transparent"
                                 Behavior on color { enabled: icp.animations; ColorAnimation { duration: 120 } }
                                 RowLayout {
                                     anchors.fill: parent
@@ -365,17 +370,17 @@ ApplicationWindow {
                                         Text {
                                             text: rowRoot.shownName
                                             textFormat: Text.PlainText
-                                            color: "white"; font.pixelSize: 14; font.weight: Font.DemiBold
+                                            color: Theme.text; font.pixelSize: 14; font.weight: Font.DemiBold
                                             elide: Text.ElideRight; Layout.fillWidth: true
                                         }
                                         Text {
                                             text: modelData.username || icp.tr("No user name", icp.languageRevision)
                                             textFormat: Text.PlainText
-                                            color: Qt.rgba(0.86, 0.9, 1, 0.62); font.pixelSize: 12 + 1
+                                            color: Theme.secondary(0.62); font.pixelSize: 12 + 1
                                             elide: Text.ElideRight; Layout.fillWidth: true
                                         }
                                     }
-                                    Icon { visible: !!modelData.totp; name: "clock"; size: 14; color: Qt.rgba(0.86, 0.9, 1, 0.6) }
+                                    Icon { visible: !!modelData.totp; name: "clock"; size: 14; color: Theme.secondary(0.6) }
                                 }
                                 MouseArea {
                                     id: rowMouse
@@ -394,7 +399,7 @@ ApplicationWindow {
                                 wrapMode: Text.WordWrap
                                 textFormat: Text.PlainText
                                 text: win.query ? icp.tr("No results for “{q}”", icp.languageRevision).replace("{q}", win.query) : icp.tr("Nothing here yet", icp.languageRevision)
-                                color: Qt.rgba(0.86, 0.9, 1, 0.55); font.pixelSize: 13 + 1
+                                color: Theme.secondary(0.55); font.pixelSize: 13 + 1
                             }
                         }
                     }
@@ -498,7 +503,7 @@ ApplicationWindow {
             anchors.centerIn: parent
             spacing: 8
             Icon { name: "check"; size: 15; color: "#7ee0a6"; anchors.verticalCenter: parent.verticalCenter }
-            Text { text: toast.message; color: "white"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: toast.message; color: Theme.text; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
         }
     }
     // ---------------------------------------------------------------- password generator
@@ -516,26 +521,26 @@ ApplicationWindow {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.35) }
         enter: Transition { enabled: icp.animations; NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 180 } }
-        background: Rectangle { radius: 22; color: Qt.rgba(0.07, 0.1, 0.18, 0.97); border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.18) }
+        background: Rectangle { radius: 22; color: Theme.popup; border.width: 1; border.color: Theme.overlay(0.18) }
         contentItem: ColumnLayout {
             spacing: 14
             RowLayout {
                 spacing: 10
-                Icon { name: "wand"; size: 20; color: "#8ec2ff" }
-                Text { text: icp.tr("Strong Password", icp.languageRevision); color: "white"; font.pixelSize: 18; font.weight: Font.Bold }
+                Icon { name: "wand"; size: 20; color: Theme.accent }
+                Text { text: icp.tr("Strong Password", icp.languageRevision); color: Theme.text; font.pixelSize: 18; font.weight: Font.Bold }
             }
             Rectangle {
                 Layout.fillWidth: true
                 implicitHeight: 58
                 radius: 14
-                color: Qt.rgba(0, 0.01, 0.05, 0.55)
+                color: Theme.inset(0.55)
                 border.width: 1
-                border.color: Qt.rgba(1, 1, 1, 0.12)
+                border.color: Theme.overlay(0.12)
                 Text {
                     anchors.centerIn: parent
                     text: generator.value
                     font.family: "DejaVu Sans Mono"; font.pixelSize: 19; font.letterSpacing: 0.5
-                    color: "white"
+                    color: Theme.text
                 }
             }
             RowLayout {
@@ -560,19 +565,19 @@ ApplicationWindow {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.35) }
         enter: Transition { enabled: icp.animations; NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 180 } }
-        background: Rectangle { radius: 22; color: Qt.rgba(0.07, 0.1, 0.18, 0.97); border.width: 1; border.color: Qt.rgba(1, 0.75, 0.36, 0.4) }
+        background: Rectangle { radius: 22; color: Theme.popup; border.width: 1; border.color: Qt.rgba(1, 0.75, 0.36, 0.4) }
         contentItem: ColumnLayout {
             spacing: 14
             RowLayout {
                 spacing: 10
                 Icon { name: "warn"; size: 20; color: "#ffbe5c" }
-                Text { text: icp.tr("Export Passwords…", icp.languageRevision); color: "white"; font.pixelSize: 18; font.weight: Font.Bold }
+                Text { text: icp.tr("Export Passwords…", icp.languageRevision); color: Theme.text; font.pixelSize: 18; font.weight: Font.Bold }
             }
             Text {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 text: icp.tr("Exported passwords aren't encrypted. Anyone who gets the file can read every password in it. Delete it when you're done.", icp.languageRevision)
-                color: "#ffe2b8"; font.pixelSize: 13; lineHeight: 1.2
+                color: Theme.warningText; font.pixelSize: 13; lineHeight: 1.2
             }
             RowLayout {
                 Layout.fillWidth: true

@@ -14,10 +14,9 @@ Item {
     property Item light: null             // pointer glow source (Main's `light`)
     property int revealDelay: -1          // >= 0 plays the entrance after that many ms
 
-    readonly property bool animate: revealDelay >= 0 && icp.animations
-    opacity: animate ? 0 : 1
-    transform: Translate { id: lift; y: root.animate ? 18 : 0 }
-    Component.onCompleted: if (animate) reveal.start()
+    // The entrance plays once, when the panel is created; later setting changes never hide it.
+    transform: Translate { id: lift }
+    Component.onCompleted: if (revealDelay >= 0 && icp.animations) { opacity = 0; lift.y = 18; reveal.start() }
 
     SequentialAnimation {
         id: reveal
@@ -35,7 +34,7 @@ Item {
         blur: 48
         offset.y: 22
         spread: -6
-        color: Qt.rgba(0, 0, 0.02, 0.55)
+        color: Theme.glassShadow
     }
 
     ShaderEffectSource {
@@ -79,11 +78,11 @@ Item {
         anchors.fill: parent
         radius: root.radius
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, root.tintTop) }
-            GradientStop { position: 1.0; color: Qt.rgba(0.85, 0.9, 1, root.tintBottom) }
+            GradientStop { position: 0.0; color: Theme.dark ? Qt.rgba(1, 1, 1, root.tintTop) : Theme.glassTop }
+            GradientStop { position: 1.0; color: Theme.dark ? Qt.rgba(0.85, 0.9, 1, root.tintBottom) : Theme.glassBottom }
         }
         border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.20)
+        border.color: Theme.glassRim
     }
 
     // Specular highlight along the top rim.
@@ -92,8 +91,8 @@ Item {
         height: Math.min(parent.height / 2, 46)
         radius: root.radius - 1
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
-            GradientStop { position: 1.0; color: Qt.rgba(1, 1, 1, 0.0) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, Theme.specular) }
+            GradientStop { position: 1.0; color: Theme.overlay(0.0) }
         }
     }
 
@@ -111,9 +110,9 @@ Item {
             fillGradient: RadialGradient {
                 centerX: sheen.spot.x; centerY: sheen.spot.y; centerRadius: 300
                 focalX: centerX; focalY: centerY
-                GradientStop { position: 0.0; color: Qt.rgba(0.85, 0.92, 1, 0.11) }
-                GradientStop { position: 0.55; color: Qt.rgba(0.85, 0.92, 1, 0.03) }
-                GradientStop { position: 1.0; color: Qt.rgba(0.85, 0.92, 1, 0.0) }
+                GradientStop { position: 0.0; color: Theme.dark ? Qt.rgba(0.85, 0.92, 1, 0.11) : Qt.rgba(1, 1, 1, 0.45) }
+                GradientStop { position: 0.55; color: Theme.dark ? Qt.rgba(0.85, 0.92, 1, 0.03) : Qt.rgba(1, 1, 1, 0.12) }
+                GradientStop { position: 1.0; color: Qt.rgba(1, 1, 1, 0.0) }
             }
             PathRectangle { x: 0; y: 0; width: sheen.width; height: sheen.height; radius: root.radius }
         }

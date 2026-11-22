@@ -35,7 +35,9 @@ ICP_ANISETTE_URL=http://127.0.0.1:6969 ./iCloud-Keychain-x86_64.AppImage        
 ICP_ANISETTE_URL=http://127.0.0.1:6969 ./iCloud-Keychain-x86_64.AppImage --cli status
 ```
 
-You also need an anisette service. On first launch the app offers to set one up for you (next section); Apple's libraries cannot be redistributed, so you point it at the `iCloud` folder of iCloud for Windows.
+Open it and it offers to add itself to your applications menu (it copies itself to
+`~/Applications` and adds a menu entry with its icon; Settings can remove it again). You also
+need an anisette service. On first launch the app offers to set one up for you (next section); Apple's libraries cannot be redistributed, so you point it at the `iCloud` folder of iCloud for Windows.
 
 **Supported systems:** 64-bit x86 Linux with glibc 2.34 or newer, which covers Ubuntu 22.04+,
 Debian 12+, Fedora 35+, Linux Mint 21+, Arch, Manjaro, and openSUSE Tumbleweed. Alpine (musl)
@@ -114,8 +116,9 @@ The toolbar above the list sorts by website, title, date edited, or date created
 descending), and its **More** menu generates a strong password (`xxxxxx-xxxxxx-xxxxxx`, from a
 cryptographic random source) or exports every password to a CSV in the same columns Apple
 uses (Title, URL, Username, Password, Notes, OTPAuth; the file is created readable only by
-you). The sidebar can be full, compact, or hidden, and Settings can turn off all animations
-and effects. Adding, editing, deleting, and importing passwords are not available yet: the
+you). The sidebar can be full or compact and hidden with the toolbar button, the appearance
+follows the system or stays light or dark, and Settings can turn off all animations and
+effects. Adding, editing, deleting, and importing passwords are not available yet: the
 engine only reads the keychain.
 
 Prefer the terminal? Every step is also available as an `icp` command: see

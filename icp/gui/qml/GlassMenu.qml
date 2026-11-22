@@ -22,9 +22,9 @@ Popup {
     exit: Transition { enabled: icp.animations; NumberAnimation { property: "opacity"; to: 0; duration: 110 } }
     background: Rectangle {
         radius: 14
-        color: Qt.rgba(0.07, 0.1, 0.18, 0.97)
+        color: Theme.popup
         border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.18)
+        border.color: Theme.overlay(0.18)
     }
     contentItem: Column {
         spacing: 2
@@ -41,13 +41,13 @@ Popup {
                     anchors.centerIn: parent
                     width: parent.width - 16
                     height: 1
-                    color: Qt.rgba(1, 1, 1, 0.12)
+                    color: Theme.overlay(0.12)
                 }
                 Rectangle {
                     visible: !entry.modelData.separator
                     anchors.fill: parent
                     radius: 9
-                    color: entryMouse.containsMouse && entry.modelData.enabled !== false ? Qt.rgba(1, 1, 1, 0.10) : "transparent"
+                    color: entryMouse.containsMouse && entry.modelData.enabled !== false ? Theme.overlay(0.10) : "transparent"
                     Row {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
@@ -56,13 +56,13 @@ Popup {
                         Icon {
                             name: entry.modelData.icon || "check"
                             size: 14
-                            color: "#8ec2ff"
+                            color: Theme.accent
                             opacity: entry.modelData.icon ? 1 : (entry.modelData.checked ? 1 : 0)
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Text {
                             text: entry.modelData.text || ""
-                            color: entry.modelData.enabled === false ? Qt.rgba(1, 1, 1, 0.35) : "white"
+                            color: entry.modelData.enabled === false ? Theme.overlay(0.35) : Theme.text
                             font.pixelSize: 13
                             elide: Text.ElideRight
                             width: menu.width - 60

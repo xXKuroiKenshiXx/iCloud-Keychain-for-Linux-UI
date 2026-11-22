@@ -91,14 +91,14 @@ Item {
                             height: 8
                             radius: 4
                             anchors.verticalCenter: parent.verticalCenter
-                            color: dot.index < root.stage ? "#5fd68e" : dot.index === root.stage ? "#8ec2ff" : Qt.rgba(1, 1, 1, 0.22)
+                            color: dot.index < root.stage ? "#5fd68e" : dot.index === root.stage ? Theme.accent : Theme.overlay(0.22)
                             Behavior on width { enabled: icp.animations; NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
                             Behavior on color { enabled: icp.animations; ColorAnimation { duration: 260 } }
                         }
                         Text {
                             visible: dot.index === root.stage
                             text: icp.tr(dot.modelData, icp.languageRevision)
-                            color: "#cfe3ff"; font.pixelSize: 12; font.weight: Font.DemiBold
+                            color: Theme.accent; font.pixelSize: 12; font.weight: Font.DemiBold
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
@@ -113,7 +113,7 @@ Item {
                     GradientStop { position: 1; color: root.step === "confirm" ? "#e8792b" : root.step === "done" ? "#25a85c" : "#2f6fe8" }
                 }
                 border.width: 1
-                border.color: Qt.rgba(1, 1, 1, 0.35)
+                border.color: Theme.overlay(0.35)
                 Icon {
                     anchors.centerIn: parent
                     size: 32; stroke: 2; color: "white"
@@ -130,7 +130,7 @@ Item {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
-                color: "white"; font.pixelSize: 24; font.weight: Font.Bold
+                color: Theme.text; font.pixelSize: 24; font.weight: Font.Bold
                 text: ({
                     "signin": icp.tr("Sign in with your Apple Account", icp.languageRevision),
                     "working": icp.tr("Connecting to iCloud", icp.languageRevision),
@@ -150,7 +150,7 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 textFormat: Text.PlainText
-                color: Qt.rgba(0.88, 0.92, 1, 0.75); font.pixelSize: 14
+                color: Theme.secondary(0.75); font.pixelSize: 14
                 lineHeight: 1.2
                 text: ({
                     "signin": icp.tr("This computer joins your iCloud Keychain as a new device. Your password is sent only to Apple and is never shown or logged.", icp.languageRevision),
@@ -262,18 +262,18 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: 56
                         radius: 14
-                        color: deviceMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0, 0.02, 0.08, 0.28)
+                        color: deviceMouse.containsMouse ? Theme.overlay(0.14) : Theme.inset(0.28)
                         border.width: 1
-                        border.color: deviceMouse.containsMouse ? "#78b0ff" : Qt.rgba(1, 1, 1, 0.12)
+                        border.color: deviceMouse.containsMouse ? "#78b0ff" : Theme.overlay(0.12)
                         Behavior on color { enabled: icp.animations; ColorAnimation { duration: 140 } }
                         RowLayout {
                             anchors.fill: parent
                             anchors.leftMargin: 14
                             anchors.rightMargin: 14
                             spacing: 12
-                            Icon { name: /mac/i.test(deviceRow.modelData.name) ? "laptop" : "phone"; size: 20; color: "#8ec2ff" }
-                            Text { text: deviceRow.modelData.name; textFormat: Text.PlainText; color: "white"; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
-                            Icon { name: "chevron"; size: 16; color: Qt.rgba(1, 1, 1, 0.5) }
+                            Icon { name: /mac/i.test(deviceRow.modelData.name) ? "laptop" : "phone"; size: 20; color: Theme.accent }
+                            Text { text: deviceRow.modelData.name; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; elide: Text.ElideRight }
+                            Icon { name: "chevron"; size: 16; color: Theme.overlay(0.5) }
                         }
                         MouseArea {
                             id: deviceMouse
@@ -338,7 +338,7 @@ Item {
         Layout.fillWidth: true
         implicitHeight: noticeRow.implicitHeight + 22
         radius: 12
-        color: Qt.alpha(hue, 0.13)
+        color: Qt.alpha(hue, Theme.dark ? 0.13 : 0.16)
         border.width: 1
         border.color: Qt.alpha(hue, 0.38)
         RowLayout {
@@ -357,7 +357,7 @@ Item {
                 text: notice.text
                 textFormat: Text.PlainText
                 wrapMode: Text.WordWrap
-                color: Qt.lighter(notice.hue, 1.45)
+                color: Theme.dark ? Qt.lighter(notice.hue, 1.45) : Qt.darker(notice.hue, 1.9)
                 font.pixelSize: 13
                 lineHeight: 1.15
             }
@@ -377,13 +377,13 @@ Item {
             radius: width / 2
             color: "transparent"
             border.width: 3
-            border.color: Qt.rgba(1, 1, 1, 0.12)
+            border.color: Theme.overlay(0.12)
         }
         Icon {
             anchors.fill: parent
             size: 34
             stroke: 2.4
-            color: "#8ec2ff"
+            color: Theme.accent
             name: "sync"
             RotationAnimation on rotation { from: 0; to: 360; duration: 1100; loops: Animation.Infinite }
         }

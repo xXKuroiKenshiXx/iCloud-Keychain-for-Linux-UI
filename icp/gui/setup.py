@@ -232,3 +232,60 @@ class Installer:
                 self.report("line", line[:300])
         if process.wait() != 0 and not allow_fail:
             raise RuntimeError(f"{Path(cmd[0]).name} {cmd[1] if len(cmd) > 1 else ''} failed")
+
+
+# ---- desktop integration for the AppImage ---------------------------------------------------
+APP_ID = "icloud-keychain"
+
+
+def appimage_path() -> str:
+    """The running AppImage file, or "" when not started from one."""
+    path = os.environ.get("APPIMAGE", "")
+    return path if path and Path(path).is_file() else ""
+
+
+def _applications_dir() -> Path:
+    base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    return Path(base)
+
+
+def desktop_entry() -> Path:
+    return _applications_dir() / "applications" / f"{APP_ID}.desktop"
+
+
+def is_integrated() -> bool:
+    return desktop_entry().is_file()
+
+
+def integrate(icon_source: Path) -> str:
+    """Copies the AppImage to ~/Applications, adds a menu entry and icon; returns the new path."""
+    source = Path(appimage_path())
+    if not source.is_file():
+        raise RuntimeError("not running from an AppImage")
+    target_dir = Path.home() / "Applications"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / "iCloud-Keychain.AppImage"
+    if source.resolve() != target.resolve():
+        shutil.copy2(source, target)
+    os.chmod(target, 0o755)
+    icon_dir = _applications_dir() / "icons/hicolor/scalable/apps"
+    icon_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(icon_source, icon_dir / f"{APP_ID}.svg")
+    entry = desktop_entry()
+    entry.parent.mkdir(parents=True, exist_ok=True)
+    entry.write_text("\n".join([
+        "[Desktop Entry]", "Type=Application", "Name=iCloud Keychain", "Comment=iCloud Passwords on Linux",
+        f'Exec="{target}" %U', f"Icon={APP_ID}", "Categories=Utility;Security;", "Terminal=false",
+        f"StartupWMClass={APP_ID}", ""]), encoding="utf-8")
+    os.chmod(entry, 0o644)
+    if shutil.which("update-desktop-database"):
+        subprocess.run(["update-desktop-database", str(entry.parent)], capture_output=True, check=False)
+    return str(target)
+
+
+def unintegrate() -> None:
+    for path in (desktop_entry(), _applications_dir() / f"icons/hicolor/scalable/apps/{APP_ID}.svg"):
+        try:
+            path.unlink()
+        except OSError:
+            pass

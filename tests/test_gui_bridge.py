@@ -226,6 +226,7 @@ class ToolsTests(unittest.TestCase):
         from icp.gui.glass import Controller
         with mock.patch("icp.gui.bridge.IcpBridge.load_vault", return_value=[]):
             controller = Controller("http://127.0.0.1:1")
+            QApplication.processEvents()   # let the startup vault load run first
         controller._write_prefs = lambda: None
         controller._raw = [
             {"name": "b.com", "site": "b.com", "title": "", "mdat": 30, "cdat": 1},
@@ -233,8 +234,11 @@ class ToolsTests(unittest.TestCase):
             {"name": "c.com", "site": "c.com", "title": "", "mdat": 20, "cdat": 2},
         ]
         controller.setSort("website", False)
+        QApplication.processEvents()
         self.assertEqual([i["name"] for i in controller.items], ["a.com", "b.com", "c.com"])
         controller.setSort("modified", True)
+        QApplication.processEvents()
         self.assertEqual([i["name"] for i in controller.items], ["b.com", "c.com", "a.com"])
         controller.setSort("created", False)
+        QApplication.processEvents()
         self.assertEqual([i["name"] for i in controller.items], ["b.com", "c.com", "a.com"])

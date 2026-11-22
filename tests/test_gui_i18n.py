@@ -42,7 +42,7 @@ class LanguageTests(unittest.TestCase):
         used |= set(re.findall(r'label: "([^"]+)"', setup))
         used |= set(re.findall(r'^\s+"\w+": "([^"]+)"', setup, re.M))
         used |= {"All", "Codes", "Wi-Fi", "Account", "Code", "Device", "Passcode", "Website", "Title",
-                 "Date Edited", "Date Created", "Full", "Compact", "Hidden"}
+                 "Date Edited", "Date Created", "Full", "Compact", "Hidden", "System", "Light", "Dark"}
         missing = sorted(text for text in used if text not in i18n._T)
         self.assertEqual(missing, [])
         for text, row in i18n._T.items():

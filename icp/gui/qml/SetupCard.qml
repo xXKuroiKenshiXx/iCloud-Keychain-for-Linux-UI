@@ -88,7 +88,7 @@ Item {
                     GradientStop { position: 1; color: root.step === "done" ? "#25a85c" : root.step === "error" ? "#e0414b" : "#2f6fe8" }
                 }
                 border.width: 1
-                border.color: Qt.rgba(1, 1, 1, 0.35)
+                border.color: Theme.overlay(0.35)
                 Icon {
                     anchors.centerIn: parent
                     size: 32; stroke: 2; color: "white"
@@ -101,7 +101,7 @@ Item {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
-                color: "white"; font.pixelSize: 24; font.weight: Font.Bold
+                color: Theme.text; font.pixelSize: 24; font.weight: Font.Bold
                 text: root.tt(({
                     "choose": "Set up the anisette service",
                     "url": "Use your own anisette service",
@@ -118,7 +118,7 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 textFormat: Text.PlainText
-                color: Qt.rgba(0.88, 0.92, 1, 0.75); font.pixelSize: 14
+                color: Theme.secondary(0.75); font.pixelSize: 14
                 lineHeight: 1.2
                 text: root.step === "error" ? (root.st.error || "") : root.tt(({
                     "choose": "Apple only accepts sign-ins from devices it recognizes. A small service on this computer creates that device identity. It never sees your Apple Account, password or passwords.",
@@ -136,6 +136,13 @@ Item {
                 Layout.fillWidth: true
                 Layout.topMargin: 4
                 spacing: 8
+                Option {
+                    visible: icp.runningAppImage && !icp.inAppMenu
+                    icon: "grid"
+                    title: root.tt("Add to the applications menu")
+                    detail: root.tt("Copies this AppImage to ~/Applications and adds it to your menu with its icon.")
+                    onPicked: icp.addToAppMenu()
+                }
                 Option {
                     icon: "laptop"
                     title: root.tt("On this computer (recommended)")
@@ -178,7 +185,7 @@ Item {
                             color: Qt.rgba(1, 0.75, 0.36, 0.14)
                             border.width: 1
                             border.color: Qt.rgba(1, 0.75, 0.36, 0.4)
-                            Text { id: missingName; anchors.centerIn: parent; text: modelData; color: "#ffd9a0"; font.pixelSize: 12 }
+                            Text { id: missingName; anchors.centerIn: parent; text: modelData; color: Theme.warningText; font.pixelSize: 12 }
                         }
                     }
                 }
@@ -187,9 +194,9 @@ Item {
                     Layout.fillWidth: true
                     implicitHeight: commandText.implicitHeight + 24
                     radius: 12
-                    color: Qt.rgba(0, 0.01, 0.05, 0.55)
+                    color: Theme.inset(0.55)
                     border.width: 1
-                    border.color: Qt.rgba(1, 1, 1, 0.12)
+                    border.color: Theme.overlay(0.12)
                     Text {
                         id: commandText
                         anchors.fill: parent
@@ -198,7 +205,7 @@ Item {
                         textFormat: Text.PlainText
                         wrapMode: Text.WrapAnywhere
                         font.family: "DejaVu Sans Mono"; font.pixelSize: 12
-                        color: "#d6e4ff"
+                        color: Theme.consoleText
                     }
                 }
                 GlassButton {
@@ -214,7 +221,7 @@ Item {
                     Layout.fillWidth: true
                     wrapMode: Text.WordWrap
                     text: root.st.error || ""
-                    color: "#ffb0b0"; font.pixelSize: 12
+                    color: Theme.danger; font.pixelSize: 12
                 }
                 RowLayout {
                     Layout.fillWidth: true
@@ -233,7 +240,7 @@ Item {
                 Text {
                     visible: (root.st.candidates || []).length > 0
                     text: root.tt("Found on this computer")
-                    color: Qt.rgba(0.86, 0.9, 1, 0.6); font.pixelSize: 12; font.weight: Font.DemiBold
+                    color: Theme.secondary(0.6); font.pixelSize: 12; font.weight: Font.DemiBold
                 }
                 Repeater {
                     model: root.st.candidates || []
@@ -243,16 +250,16 @@ Item {
                         Layout.fillWidth: true
                         implicitHeight: 46
                         radius: 12
-                        color: root.folder === modelData ? Qt.rgba(0.45, 0.65, 1, 0.26) : (candidateMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(0, 0.02, 0.08, 0.28))
+                        color: root.folder === modelData ? Theme.selection : (candidateMouse.containsMouse ? Theme.overlay(0.10) : Theme.inset(0.28))
                         border.width: 1
-                        border.color: root.folder === modelData ? "#78b0ff" : Qt.rgba(1, 1, 1, 0.12)
+                        border.color: root.folder === modelData ? "#78b0ff" : Theme.overlay(0.12)
                         RowLayout {
                             anchors.fill: parent
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
                             spacing: 10
-                            Icon { name: "folder"; size: 18; color: "#8ec2ff" }
-                            Text { text: candidate.modelData; textFormat: Text.PlainText; color: "white"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.fillWidth: true }
+                            Icon { name: "folder"; size: 18; color: Theme.accent }
+                            Text { text: candidate.modelData; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.fillWidth: true }
                         }
                         MouseArea { id: candidateMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { root.folder = candidate.modelData; root.folderError = "" } }
                     }
@@ -263,14 +270,14 @@ Item {
                     text: root.folder
                     textFormat: Text.PlainText
                     elide: Text.ElideMiddle
-                    color: "#cfe3ff"; font.pixelSize: 12
+                    color: Theme.accent; font.pixelSize: 12
                 }
                 Text {
                     visible: root.folderError !== ""
                     Layout.fillWidth: true
                     wrapMode: Text.WordWrap
                     text: root.folderError
-                    color: "#ffb0b0"; font.pixelSize: 12
+                    color: Theme.danger; font.pixelSize: 12
                 }
                 RowLayout {
                     Layout.fillWidth: true
@@ -297,7 +304,7 @@ Item {
                         spacing: 10
                         Rectangle {
                             width: 18; height: 18; radius: 9
-                            color: installRow.index < installRow.current ? "#5fd68e" : installRow.index === installRow.current ? "#8ec2ff" : Qt.rgba(1, 1, 1, 0.16)
+                            color: installRow.index < installRow.current ? "#5fd68e" : installRow.index === installRow.current ? Theme.accent : Theme.overlay(0.16)
                             Behavior on color { enabled: icp.animations; ColorAnimation { duration: 240 } }
                             Icon { anchors.centerIn: parent; visible: installRow.index < installRow.current; name: "check"; size: 12; stroke: 2.2; color: "#0b1a10" }
                             SequentialAnimation on opacity {
@@ -311,7 +318,7 @@ Item {
                             Layout.fillWidth: true
                             wrapMode: Text.WordWrap
                             text: root.tt(installRow.modelData.label)
-                            color: installRow.index <= installRow.current ? "white" : Qt.rgba(0.86, 0.9, 1, 0.5)
+                            color: installRow.index <= installRow.current ? Theme.text : Theme.secondary(0.5)
                             font.pixelSize: 13
                         }
                     }
@@ -321,9 +328,9 @@ Item {
                     Layout.topMargin: 6
                     implicitHeight: logText.implicitHeight + 20
                     radius: 12
-                    color: Qt.rgba(0, 0.01, 0.05, 0.55)
+                    color: Theme.inset(0.55)
                     border.width: 1
-                    border.color: Qt.rgba(1, 1, 1, 0.10)
+                    border.color: Theme.overlay(0.10)
                     Text {
                         id: logText
                         anchors.fill: parent
@@ -334,7 +341,7 @@ Item {
                         maximumLineCount: 6
                         elide: Text.ElideRight
                         font.family: "DejaVu Sans Mono"; font.pixelSize: 11
-                        color: Qt.rgba(0.84, 0.9, 1, 0.7)
+                        color: Theme.secondary(0.7)
                     }
                 }
             }
@@ -365,7 +372,7 @@ Item {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 text: root.st.error || ""
-                color: "#ffb0b0"; font.pixelSize: 12
+                color: Theme.danger; font.pixelSize: 12
             }
         }
     }
@@ -379,23 +386,23 @@ Item {
         Layout.fillWidth: true
         implicitHeight: optionColumn.implicitHeight + 26
         radius: 14
-        color: optionMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.13) : Qt.rgba(0, 0.02, 0.08, 0.28)
+        color: optionMouse.containsMouse ? Theme.overlay(0.13) : Theme.inset(0.28)
         border.width: 1
-        border.color: optionMouse.containsMouse ? "#78b0ff" : Qt.rgba(1, 1, 1, 0.12)
+        border.color: optionMouse.containsMouse ? "#78b0ff" : Theme.overlay(0.12)
         Behavior on color { enabled: icp.animations; ColorAnimation { duration: 140 } }
         RowLayout {
             anchors.fill: parent
             anchors.margins: 13
             spacing: 12
-            Icon { Layout.alignment: Qt.AlignTop; name: option.icon; size: 22; color: "#8ec2ff" }
+            Icon { Layout.alignment: Qt.AlignTop; name: option.icon; size: 22; color: Theme.accent }
             ColumnLayout {
                 id: optionColumn
                 Layout.fillWidth: true
                 spacing: 3
-                Text { Layout.fillWidth: true; text: option.title; wrapMode: Text.WordWrap; color: "white"; font.pixelSize: 14; font.weight: Font.DemiBold }
-                Text { Layout.fillWidth: true; text: option.detail; wrapMode: Text.WordWrap; color: Qt.rgba(0.86, 0.9, 1, 0.65); font.pixelSize: 12 }
+                Text { Layout.fillWidth: true; text: option.title; wrapMode: Text.WordWrap; color: Theme.text; font.pixelSize: 14; font.weight: Font.DemiBold }
+                Text { Layout.fillWidth: true; text: option.detail; wrapMode: Text.WordWrap; color: Theme.secondary(0.65); font.pixelSize: 12 }
             }
-            Icon { name: "chevron"; size: 16; color: Qt.rgba(1, 1, 1, 0.5) }
+            Icon { name: "chevron"; size: 16; color: Theme.overlay(0.5) }
         }
         MouseArea { id: optionMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: option.picked() }
     }
