@@ -12,6 +12,9 @@ LANGUAGES = {
     "fr": "Français",
     "de": "Deutsch",
     "it": "Italiano",
+    "zh": "中文（简体）",
+    "ru": "Русский",
+    "uk": "Українська",
 }
 
 _T = {
@@ -110,12 +113,6 @@ _T = {
     "{n} passwords are now on this computer, encrypted.": ("Ahora hay {n} contraseñas en esta computadora, cifradas.", "Há agora {n} senhas neste computador, encriptadas.", "{n} mots de passe sont maintenant sur cet ordinateur, chiffrés.", "{n} Passwörter sind jetzt verschlüsselt auf diesem Computer.", "Ora ci sono {n} password su questo computer, cifrate."),
     "Your Apple Account password.": ("La contraseña de tu cuenta de Apple.", "A senha da sua Conta Apple.", "Le mot de passe de votre compte Apple.", "Das Passwort deines Apple Accounts.", "La password del tuo Account Apple."),
     "Your Apple Account email.": ("El correo de tu cuenta de Apple.", "O e-mail da sua Conta Apple.", "L’adresse e-mail de votre compte Apple.", "Die E-Mail-Adresse deines Apple Accounts.", "L’e-mail del tuo Account Apple."),
-    "The anisette service at {url} isn't answering. Sign-in needs it: start it, then press Check Again.": (
-        "El servicio de anisette en {url} no responde. Es necesario para iniciar sesión: inícialo y presiona Volver a comprobar.",
-        "O serviço anisette em {url} não responde. É necessário para iniciar sessão: inicie-o e prima Verificar de novo.",
-        "Le service anisette à {url} ne répond pas. Il est nécessaire pour se connecter : démarrez-le puis appuyez sur Vérifier à nouveau.",
-        "Der Anisette-Dienst unter {url} antwortet nicht. Er wird zur Anmeldung benötigt: Starte ihn und tippe dann auf „Erneut prüfen“.",
-        "Il servizio anisette su {url} non risponde. Serve per accedere: avvialo e premi Controlla di nuovo."),
     "Check Again": ("Volver a comprobar", "Verificar de novo", "Vérifier à nouveau", "Erneut prüfen", "Controlla di nuovo"),
     "No code? Unlock one of your Apple devices and wait a minute with this window open. Asking for codes repeatedly can block sign-in for a while.": (
         "¿No llega el código? Desbloquea uno de tus dispositivos Apple y espera un minuto con esta ventana abierta. Pedir códigos una y otra vez puede bloquear el inicio de sesión por un tiempo.",
@@ -260,7 +257,13 @@ def translate_engine(text: str, language: str) -> str:
             return translate(template, language).format(**match.groupdict())
     return text
 
-_ORDER = ("es", "pt", "fr", "de", "it")
+from .i18n_more import MORE as _MORE, NEW as _NEW  # noqa: E402
+
+for _key in list(_T):
+    _T[_key] = _T[_key] + _MORE[_key]
+_T.update(_NEW)
+
+_ORDER = ("es", "pt", "fr", "de", "it", "zh", "ru", "uk")
 
 
 def translate(text: str, language: str) -> str:

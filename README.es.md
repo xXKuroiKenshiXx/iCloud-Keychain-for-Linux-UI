@@ -39,10 +39,19 @@ Debian 12+, Fedora 35+, Linux Mint 21+, Arch, Manjaro y openSUSE Tumbleweed. Alp
 equipos ARM no son compatibles con el AppImage; ahí se usa desde el código fuente. La ventana
 funciona en Wayland y en X11.
 
-**Idiomas:** English, Español, Português, Français, Deutsch e Italiano. Usa el idioma del
+**Idiomas:** English, Español, Português, Français, Deutsch, Italiano, 中文（简体）, Русский y Українська. Usa el idioma del
 sistema y, si no está disponible, inglés. Se cambia en Ajustes → Idioma.
 
 ## Qué necesitás: un servicio de anisette
+
+**La forma fácil:** abrí la app. Si no hay un servicio de anisette respondiendo, aparece un
+asistente que revisa las herramientas necesarias (y te muestra el único comando para instalarlas
+en tu distribución), encuentra o te pide la carpeta `iCloud` de iCloud para Windows 15.10.39,
+descarga la versión revisada de Anisette-on-Wine, la compila, registra la computadora con Apple e
+inicia el servicio. Desde ahí la app lo inicia sola. En Ajustes → Servicio de anisette →
+Configurar… se vuelve a abrir, y también acepta la dirección de un servicio que ya tengas.
+
+**La forma manual:** ejecutá uno de estos y configurá `ICP_ANISETTE_URL`:
 
 Apple identifica cada dispositivo con unos encabezados llamados *anisette*. Hace falta un
 servicio que los genere:

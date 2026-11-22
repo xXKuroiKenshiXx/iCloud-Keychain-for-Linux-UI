@@ -20,11 +20,13 @@ class LanguageTests(unittest.TestCase):
     def test_translates_and_falls_back_to_english(self):
         self.assertEqual(i18n.translate("Sign In", "es"), "Iniciar sesión")
         self.assertEqual(i18n.translate("Sign In", "en"), "Sign In")
-        self.assertEqual(i18n.translate("Sign In", "ru"), "Sign In")
+        self.assertEqual(i18n.translate("Sign In", "ru"), "Войти")
+        self.assertEqual(i18n.translate("Sign In", "zh"), "登录")
+        self.assertEqual(i18n.translate("Sign In", "ko"), "Sign In")
         self.assertEqual(i18n.translate("Some new text", "es"), "Some new text")
 
     def test_unsupported_system_language_means_english(self):
-        with mock.patch.object(QLocale, "system", return_value=QLocale("ru_RU")):
+        with mock.patch.object(QLocale, "system", return_value=QLocale("ko_KR")):
             self.assertEqual(i18n.system_language(), "en")
             self.assertEqual(i18n.resolve("system"), "en")
         with mock.patch.object(QLocale, "system", return_value=QLocale("es_AR")):
@@ -35,11 +37,16 @@ class LanguageTests(unittest.TestCase):
         used = set()
         for path in QML.glob("*.qml"):
             used |= set(re.findall(r'icp\.tr\("([^"]*)"', path.read_text(encoding="utf-8")))
+        setup = (QML / "SetupCard.qml").read_text(encoding="utf-8")
+        used |= set(re.findall(r'tt\("([^"]+)"\)', setup))
+        used |= set(re.findall(r'label: "([^"]+)"', setup))
+        used |= set(re.findall(r'^\s+"\w+": "([^"]+)"', setup, re.M))
         used |= {"All", "Codes", "Wi-Fi", "Account", "Code", "Device", "Passcode"}
         missing = sorted(text for text in used if text not in i18n._T)
         self.assertEqual(missing, [])
         for text, row in i18n._T.items():
-            self.assertEqual(len(row), 5, text)
+            self.assertEqual(len(row), len(i18n._ORDER), text)
+            self.assertTrue(all(part.strip() for part in row), text)
             for translated in row:
                 self.assertEqual(set(re.findall(r"\{\w+\}", text)), set(re.findall(r"\{\w+\}", translated)), text)
 

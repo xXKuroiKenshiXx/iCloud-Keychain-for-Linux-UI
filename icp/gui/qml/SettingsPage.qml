@@ -6,6 +6,7 @@ import QtQuick.Layouts
 Glass {
     id: root
     property bool follow: true
+    signal requestSetup()
 
     ColumnLayout {
         anchors.fill: parent
@@ -25,7 +26,22 @@ Glass {
                 id: info
                 width: parent.width
                 spacing: 0
-                InfoRow { icon: "globe"; title: icp.tr("Anisette service", icp.languageRevision); value: icp.anisetteUrl }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.margins: 14
+                    spacing: 14
+                    Icon { name: "globe"; size: 20; color: "#8ec2ff" }
+                    Text { text: icp.tr("Anisette service", icp.languageRevision); color: "white"; font.pixelSize: 14; Layout.preferredWidth: 150; elide: Text.ElideRight }
+                    Rectangle { width: 8; height: 8; radius: 4; color: icp.anisetteState === 1 ? "#5fd68e" : icp.anisetteState === 0 ? "#ff7a7a" : "#ffbe5c" }
+                    Text {
+                        text: icp.anisetteUrl
+                        color: Qt.rgba(0.86, 0.9, 1, 0.7); font.pixelSize: 13
+                        elide: Text.ElideMiddle; Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignRight
+                        textFormat: Text.PlainText
+                    }
+                    GlassButton { compact: true; text: icp.tr("Set Up…", icp.languageRevision); onClicked: root.requestSetup() }
+                }
                 Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
                 InfoRow { icon: "folder"; title: icp.tr("Session and vault", icp.languageRevision); value: icp.dataDir }
                 Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }

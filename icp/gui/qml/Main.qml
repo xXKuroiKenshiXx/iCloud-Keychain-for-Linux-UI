@@ -18,6 +18,8 @@ ApplicationWindow {
     property string query: ""
     readonly property bool vaultSection: section === "all" || section === "codes" || section === "wifi"
     readonly property bool needsSignIn: icp.items.length === 0 && !icp.signedIn
+    readonly property bool needsSetup: needsSignIn && icp.anisetteState === 0
+    readonly property bool showSetup: section === "setup" || (needsSetup && (vaultSection || section === "account"))
 
     function isWifi(item) { return /wi-?fi|airport/i.test(item.domain || "") || (!item.site && !item.username && item.title !== "") }
     function matches(item) {
@@ -91,13 +93,12 @@ ApplicationWindow {
                     Layout.leftMargin: 6
                     Layout.bottomMargin: 10
                     spacing: 10
-                    Rectangle {
-                        width: 30; height: 30; radius: 8
-                        gradient: Gradient {
-                            GradientStop { position: 0; color: "#6db2ff" }
-                            GradientStop { position: 1; color: "#2f6fe8" }
-                        }
-                        Icon { anchors.centerIn: parent; name: "key"; size: 17; color: "white"; stroke: 2 }
+                    Image {
+                        width: 32; height: 32
+                        source: "icon.svg"
+                        sourceSize.width: 64
+                        sourceSize.height: 64
+                        smooth: true
                     }
                     Text { text: icp.tr("Passwords", icp.languageRevision); color: "white"; font.pixelSize: 19; font.weight: Font.Bold }
                 }
@@ -332,7 +333,7 @@ ApplicationWindow {
             // Sign-in / account
             Item {
                 anchors.fill: parent
-                readonly property bool shown: win.section === "account" || (win.vaultSection && win.needsSignIn)
+                readonly property bool shown: !win.showSetup && (win.section === "account" || (win.vaultSection && win.needsSignIn))
                 opacity: shown ? 1 : 0
                 scale: shown ? 1 : 0.985
                 visible: opacity > 0.01
@@ -345,12 +346,42 @@ ApplicationWindow {
                     backdrop: backdrop
                     light: light
                     onFinished: win.section = "all"
+                    onRequestSetup: win.section = "setup"
+                }
+            }
+
+            // Anisette setup assistant
+            Item {
+                anchors.fill: parent
+                readonly property bool shown: win.showSetup
+                opacity: shown ? 1 : 0
+                scale: shown ? 1 : 0.985
+                visible: opacity > 0.01
+                enabled: shown
+                Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+                Flickable {
+                    anchors.fill: parent
+                    contentHeight: Math.max(height, setupCard.height + 40)
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    SetupCard {
+                        id: setupCard
+                        objectName: "setupCard"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: Math.max(20, (parent.height - height) / 2)
+                        width: Math.min(win.width - 320, 500)
+                        backdrop: backdrop
+                        light: light
+                        onFinished: win.section = "account"
+                    }
                 }
             }
 
             // Settings + debug console
             SettingsPage {
                 anchors.fill: parent
+                onRequestSetup: win.section = "setup"
                 light: light
                 readonly property bool shown: win.section === "settings"
                 opacity: shown ? 1 : 0

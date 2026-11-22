@@ -35,17 +35,26 @@ ICP_ANISETTE_URL=http://127.0.0.1:6969 ./iCloud-Keychain-x86_64.AppImage        
 ICP_ANISETTE_URL=http://127.0.0.1:6969 ./iCloud-Keychain-x86_64.AppImage --cli status
 ```
 
-You still need an anisette service (next section); Apple's libraries cannot be redistributed.
+You also need an anisette service. On first launch the app offers to set one up for you (next section); Apple's libraries cannot be redistributed, so you point it at the `iCloud` folder of iCloud for Windows.
 
 **Supported systems:** 64-bit x86 Linux with glibc 2.34 or newer, which covers Ubuntu 22.04+,
 Debian 12+, Fedora 35+, Linux Mint 21+, Arch, Manjaro, and openSUSE Tumbleweed. Alpine (musl)
 and ARM machines are not supported by the AppImage; run from source there. The window uses
 Wayland or X11.
 
-**Languages:** English, Español, Português, Français, Deutsch, and Italiano. The window follows
+**Languages:** English, Español, Português, Français, Deutsch, Italiano, 中文（简体）, Русский, and Українська. The window follows
 the system language and falls back to English; change it under Settings → Language.
 
 ## What you'll need
+
+**The easy way:** open the app. When no anisette service answers, it opens a setup assistant
+that checks the tools it needs (and shows the one install command for your distribution),
+finds or asks for the `iCloud` folder from iCloud for Windows 15.10.39, downloads the reviewed
+version of Anisette-on-Wine, builds it, registers this computer with Apple, and starts the
+service. From then on the app starts the service by itself. Settings → Anisette service → Set Up…
+opens the assistant again, and it also accepts the address of a service you already run.
+
+**The manual way:** run one of these yourself and set `ICP_ANISETTE_URL`:
 
 A configured Anisette server:
 

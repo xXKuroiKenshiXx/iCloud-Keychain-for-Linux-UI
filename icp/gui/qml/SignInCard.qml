@@ -9,6 +9,7 @@ Item {
     property Item backdrop
     property Item light: null
     signal finished()
+    signal requestSetup()
 
     readonly property string kind: icp.prompt.kind || ""
     readonly property string step: kind !== "" ? kind
@@ -168,9 +169,9 @@ Item {
             Notice {
                 visible: root.step === "signin" && icp.anisetteState === 0
                 tone: "error"
-                text: icp.tr("The anisette service at {url} isn't answering. Sign-in needs it: start it, then press Check Again.", icp.languageRevision).replace("{url}", icp.anisetteUrl)
-                action: icp.tr("Check Again", icp.languageRevision)
-                onActivated: icp.checkAnisette()
+                text: icp.tr("The anisette service at {url} isn't answering. Sign-in needs it: set it up or start it.", icp.languageRevision).replace("{url}", icp.anisetteUrl)
+                action: icp.tr("Set Up…", icp.languageRevision)
+                onActivated: root.requestSetup()
             }
             Notice {
                 visible: root.step === "code"

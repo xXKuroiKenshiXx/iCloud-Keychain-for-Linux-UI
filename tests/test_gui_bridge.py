@@ -176,3 +176,19 @@ class SignInExperienceTests(unittest.TestCase):
         controller._enqueue("b", "b.example", front=True)
         controller._enqueue("c", "c.example", front=True)
         self.assertEqual([key for key, _ in controller._icon_jobs], ["c", "b", "a"])
+
+
+class WindowLoadTests(unittest.TestCase):
+    def test_every_qml_file_loads(self):
+        from PyQt6.QtCore import QUrl
+        from PyQt6.QtQml import QQmlComponent
+        from icp.gui.glass import QML_DIR, Controller, create_engine
+        with mock.patch("icp.gui.bridge.IcpBridge.load_vault", return_value=[]):
+            controller = Controller("http://127.0.0.1:1")
+        engine = create_engine(controller)
+        self.assertTrue(engine.rootObjects(), "Main.qml did not load")
+        for path in sorted(QML_DIR.glob("*.qml")):
+            component = QQmlComponent(engine, QUrl.fromLocalFile(str(path)))
+            self.assertFalse(component.isError(), f"{path.name}: {component.errorString()}")
+        for root in engine.rootObjects():
+            root.deleteLater()

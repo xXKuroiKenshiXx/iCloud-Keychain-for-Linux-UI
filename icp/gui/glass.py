@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import os
 import sys
 import threading
@@ -19,6 +20,7 @@ from PyQt6.QtQml import QQmlApplicationEngine, QQmlNetworkAccessManagerFactory
 from PyQt6.QtQuick import QQuickImageProvider
 
 from . import i18n, icons
+from . import setup as anisette_setup
 from .bridge import IcpBridge
 
 QML_DIR = Path(__file__).resolve().parent / "qml"
@@ -117,6 +119,8 @@ class Controller(QObject):
     toast = pyqtSignal(str)
     iconsChanged = pyqtSignal()
     languageChanged = pyqtSignal()
+    setupChanged = pyqtSignal()
+    setupReport = pyqtSignal(str, str)     # kind, text (from the installer thread)
 
     def __init__(self, anisette_url: str | None = None, bridge=None):
         super().__init__()
@@ -126,6 +130,7 @@ class Controller(QObject):
         self.logged.connect(self._append_log)
         self._items: list[dict] = []
         self._log: list[dict] = []
+        self._seen_once: set[str] = set()
         self._status = ""
         self._error = ""
         self._prompt = {"kind": "", "message": "", "devices": []}
@@ -150,8 +155,14 @@ class Controller(QObject):
         logging.getLogger("icp").addHandler(handler)
         logging.getLogger("icp").setLevel(logging.INFO)
         self._append_log("info", f"Anisette service: {self.bridge.anisette_url}")
+        self._setup = {"phase": "idle", "step": "", "error": "", "missing": [], "command": "",
+                       "candidates": [], "log": []}
+        self.setupReport.connect(self._on_setup_report)
+        configured = self._prefs.get("anisette") or {}
+        if configured.get("mode") == "url" and configured.get("url") and not anisette_url:
+            self._apply_url(configured["url"])
         QTimer.singleShot(0, self._load_saved)
-        QTimer.singleShot(0, self.checkAnisette)
+        QTimer.singleShot(0, self._autostart_anisette)
 
     # ---- properties ------------------------------------------------------------------
     @pyqtProperty("QVariantList", notify=vaultChanged)
@@ -232,7 +243,11 @@ class Controller(QObject):
     def fetchIcons(self):
         return bool(self._prefs.get("fetch_icons", True))
 
-    @pyqtProperty(str, constant=True)
+    @pyqtProperty("QVariantMap", notify=setupChanged)
+    def setup(self):
+        return self._setup
+
+    @pyqtProperty(str, notify=changed)
     def anisetteUrl(self):
         return self.bridge.anisette_url
 
@@ -319,6 +334,94 @@ class Controller(QObject):
             return generate(uri) or {}
         except Exception:  # noqa: BLE001 - a malformed code never breaks the detail view
             return {}
+
+    # ---- anisette setup -------------------------------------------------------------------
+    def _autostart_anisette(self) -> None:
+        """Starts a local Anisette-on-Wine that is already installed, then checks the service."""
+        configured = self._prefs.get("anisette") or {}
+        if configured.get("mode") != "url":
+            folder = anisette_setup.find_installed_tool()
+            if folder and self.bridge.anisette_url == anisette_setup.DEFAULT_URL:
+                self._append_log("info", f"Starting the local anisette service from {folder}")
+                threading.Thread(target=self._start_and_check, args=(folder,), daemon=True).start()
+                return
+        self.checkAnisette()
+
+    def _start_and_check(self, folder) -> None:
+        try:
+            anisette_setup.start_service(folder)
+            for _ in range(25):
+                if anisette_setup.healthy(self.bridge.anisette_url, timeout=1):
+                    break
+                time.sleep(1)
+        except Exception as error:  # noqa: BLE001
+            self.logged.emit("warning", f"anisette autostart: {error}")
+        self.anisetteChecked.emit(anisette_setup.healthy(self.bridge.anisette_url, timeout=2))
+
+    @pyqtSlot()
+    def setupRefresh(self) -> None:
+        missing = anisette_setup.missing_tools()
+        self._setup.update({"missing": missing, "command": anisette_setup.install_command(missing),
+                            "candidates": anisette_setup.find_icloud_dirs()})
+        self.setupChanged.emit()
+
+    @pyqtSlot()
+    def setupReset(self) -> None:
+        self._setup.update({"phase": "idle", "error": "", "log": []})
+        self.setupRefresh()
+
+    @pyqtSlot(str, result=str)
+    def setupFolder(self, url: str) -> str:
+        """The local path for a picked folder when it holds the iCloud libraries, else ""."""
+        path = QUrl(url).toLocalFile() or url
+        return path if anisette_setup.is_icloud_dir(path) else ""
+
+    @pyqtSlot(str)
+    def setupInstall(self, icloud_folder: str) -> None:
+        if self._setup.get("phase") == "running":
+            return
+        self._setup.update({"phase": "running", "step": "copy", "error": "", "log": []})
+        self.setupChanged.emit()
+        self._append_log("info", "Anisette setup started")
+        anisette_setup.Installer(icloud_folder, lambda kind, text: self.setupReport.emit(kind, text)).start()
+
+    @pyqtSlot(str)
+    def setupUseUrl(self, url: str) -> None:
+        url = url.strip().rstrip("/")
+        if not url.startswith(("http://", "https://")):
+            self._setup["error"] = self._t("Enter a URL that starts with http:// or https://.")
+            self.setupChanged.emit()
+            return
+        self._prefs["anisette"] = {"mode": "url", "url": url}
+        self._write_prefs()
+        self._apply_url(url)
+        self._setup.update({"phase": "idle", "error": ""})
+        self.setupChanged.emit()
+        self.checkAnisette()
+
+    def _apply_url(self, url: str) -> None:
+        self.bridge.anisette_url = url
+        os.environ["ICP_ANISETTE_URL"] = url
+        self.changed.emit()
+
+    def _on_setup_report(self, kind: str, text: str) -> None:
+        if kind == "line":
+            self._append_log("debug", f"setup: {text}")
+            self._setup["log"] = (self._setup.get("log", []) + [text])[-6:]
+        elif kind == "step":
+            self._append_log("info", f"Anisette setup: {text}")
+            self._setup["step"] = text
+        elif kind == "done":
+            self._setup.update({"phase": "done", "step": "start"})
+            self._prefs["anisette"] = {"mode": "wine"}
+            self._write_prefs()
+            self._apply_url(anisette_setup.DEFAULT_URL)
+            self._append_log("info", "Anisette setup finished")
+            self._set(anisette_state=1)
+        elif kind == "error":
+            self._setup.update({"phase": "error", "error": text})
+            self._append_log("error", f"Anisette setup failed: {text}")
+        self.setupChanged.emit()
 
     @pyqtSlot()
     def checkAnisette(self) -> None:
@@ -570,7 +673,8 @@ class Controller(QObject):
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w") as handle:
             json.dump({"fetch_icons": bool(self._prefs.get("fetch_icons", True)),
-                       "language": self._prefs.get("language", "system")}, handle)
+                       "language": self._prefs.get("language", "system"),
+                       "anisette": self._prefs.get("anisette") or {}}, handle)
 
     # ---- helpers -----------------------------------------------------------------------
     def _clear_prompt(self) -> None:
@@ -584,7 +688,16 @@ class Controller(QObject):
             setattr(self, f"_{key}", value)
         self.changed.emit()
 
+    _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+    _ONCE = ("Secret Service unavailable",)
+
     def _append_log(self, level: str, text: str) -> None:
+        text = self._EMAIL.sub(lambda m: mask_account(m.group(0)), text)
+        once = next((marker for marker in self._ONCE if marker in text), None)
+        if once:
+            if once in self._seen_once:
+                return
+            self._seen_once.add(once)
         stamp = time.strftime("%H:%M:%S")
         last = self._log[-1] if self._log else None
         if last and last["base"] == text and last["level"] == level:

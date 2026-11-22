@@ -110,9 +110,14 @@ class IcpBridge(QObject):
         self._thread.start()
 
     def _guarded(self, job) -> None:
+        from icp.cli import app as cli_app
         from icp.cli import ui
         saved = {name: getattr(ui, name) for name in
                  ("out", "step", "warn", "err", "ask", "secret", "confirm_yn")}
+        # The window does not show Hide My Email, and fetching it signs in to a separate Apple
+        # web session on every run; skipping it avoids extra (and failing) Apple sign-ins.
+        saved_aliases = cli_app._fetch_aliases_best_effort
+        cli_app._fetch_aliases_best_effort = lambda interactive: []
         ui.out = lambda msg="": self._status(msg)
         ui.step = self._step
         ui.warn = lambda msg: self._status(f"Warning: {msg}")
@@ -130,6 +135,7 @@ class IcpBridge(QObject):
         finally:
             for name, function in saved.items():
                 setattr(ui, name, function)
+            cli_app._fetch_aliases_best_effort = saved_aliases
             self._password = ""
             self.finished.emit(code)
 
