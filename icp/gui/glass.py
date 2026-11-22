@@ -18,7 +18,7 @@ from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt6.QtQml import QQmlApplicationEngine, QQmlNetworkAccessManagerFactory
 from PyQt6.QtQuick import QQuickImageProvider
 
-from . import icons
+from . import i18n, icons
 from .bridge import IcpBridge
 
 QML_DIR = Path(__file__).resolve().parent / "qml"
@@ -86,6 +86,27 @@ class _IconProvider(QQuickImageProvider):
         return image, image.size()
 
 
+def friendly_error(text: str, anisette_url: str = "", tr=lambda message: message) -> str:
+    """Plain-language explanation for the failures people actually hit; the raw text stays
+    in the debug console."""
+    low = text.lower()
+    if "429" in low or "rate" in low and "limit" in low:
+        return tr("Apple is limiting sign-in attempts from this computer. Wait at least an hour before trying again; retrying sooner extends the block.")
+    if "503" in low:
+        return tr("Apple's sign-in service refused this device identity (HTTP 503). Check that the anisette service is the Windows iCloud one and is running.")
+    if "-22406" in low or "incorrect" in low and "password" in low:
+        return tr("Apple says the Apple Account email or password is incorrect.")
+    if "-22410" in low:
+        return tr("Apple rejected the sign-in request (-22410). This usually means the anisette identity does not match; restart the anisette service and try again later.")
+    if "anisette" in low or "connection refused" in low or "max retries" in low:
+        return tr("The anisette service at {url} isn't answering. Start it, then try again.").format(url=anisette_url)
+    if "escrow" in low and ("limit" in low or "attempt" in low):
+        return tr("The device passcode was not accepted. Each wrong passcode uses one of about ten recovery attempts; check the device before trying again.")
+    if "cancelled" in low:
+        return tr("Cancelled. Nothing was changed.")
+    return text
+
+
 class Controller(QObject):
     logged = pyqtSignal(str, str)          # level, text (thread-safe entry point)
     iconFetched = pyqtSignal(str, bytes, str, bool)   # key, png, site name, ok (from worker)
@@ -94,16 +115,18 @@ class Controller(QObject):
     logChanged = pyqtSignal()
     promptChanged = pyqtSignal()
     toast = pyqtSignal(str)
+    iconsChanged = pyqtSignal()
+    languageChanged = pyqtSignal()
 
-    def __init__(self, anisette_url: str | None = None):
+    def __init__(self, anisette_url: str | None = None, bridge=None):
         super().__init__()
-        self.bridge = IcpBridge(anisette_url)
+        self.bridge = bridge or IcpBridge(anisette_url)
         self.bridge.message.connect(self._on_message)
         self.bridge.finished.connect(self._on_finished)
         self.logged.connect(self._append_log)
         self._items: list[dict] = []
         self._log: list[dict] = []
-        self._status = "Not connected"
+        self._status = ""
         self._error = ""
         self._prompt = {"kind": "", "message": "", "devices": []}
         self._stage = "signin"
@@ -112,16 +135,23 @@ class Controller(QObject):
         self._raw: list[dict] = []
         self.icon_store: icons.IconStore | None = None
         self._prefs = self._read_prefs()
+        self._language = i18n.resolve(self._prefs.get("language", "system"))
+        self._language_revision = 0
         self._icon_jobs: list[tuple[str, str]] = []
+        self._icon_lock = threading.Lock()
         self._icon_thread: threading.Thread | None = None
+        self._icon_revision = 0
+        self._anisette_state = -1          # -1 unknown, 0 not answering, 1 answering
         self.iconFetched.connect(self._on_icon)
-        self._redecorate = QTimer(self, singleShot=True, interval=400)
-        self._redecorate.timeout.connect(self._publish)
+        self.anisetteChecked.connect(lambda ok: self._set(anisette_state=1 if ok else 0))
+        self._icons_tick = QTimer(self, singleShot=True, interval=120)
+        self._icons_tick.timeout.connect(self._bump_icons)
         handler = _LogForwarder(self)
         logging.getLogger("icp").addHandler(handler)
         logging.getLogger("icp").setLevel(logging.INFO)
         self._append_log("info", f"Anisette service: {self.bridge.anisette_url}")
         QTimer.singleShot(0, self._load_saved)
+        QTimer.singleShot(0, self.checkAnisette)
 
     # ---- properties ------------------------------------------------------------------
     @pyqtProperty("QVariantList", notify=vaultChanged)
@@ -157,6 +187,47 @@ class Controller(QObject):
     def prompt(self):
         return self._prompt
 
+    # ---- language ------------------------------------------------------------------------
+    def _t(self, text: str) -> str:
+        return i18n.translate(text, self._language)
+
+    @pyqtSlot(str, int, result=str)
+    def tr(self, text: str, revision: int) -> str:
+        return self._t(text)
+
+    @pyqtProperty(int, notify=languageChanged)
+    def languageRevision(self):
+        return self._language_revision
+
+    @pyqtProperty(str, notify=languageChanged)
+    def languagePreference(self):
+        return self._prefs.get("language", "system") if self._prefs.get("language") in i18n.LANGUAGES else "system"
+
+    @pyqtProperty("QVariantList", notify=languageChanged)
+    def languageOptions(self):
+        system = i18n.LANGUAGES[i18n.system_language()]
+        options = [{"code": "system", "name": self._t("System ({lang})").format(lang=system)}]
+        options += [{"code": code, "name": name} for code, name in i18n.LANGUAGES.items()]
+        return options
+
+    @pyqtSlot(str)
+    def setLanguage(self, code: str) -> None:
+        self._prefs["language"] = code if code in i18n.LANGUAGES else "system"
+        self._write_prefs()
+        self._language = i18n.resolve(self._prefs["language"])
+        self._language_revision += 1
+        self._append_log("info", f"Language: {self._language}")
+        self.languageChanged.emit()
+        self.changed.emit()
+
+    @pyqtProperty(int, notify=iconsChanged)
+    def iconRevision(self):
+        return self._icon_revision
+
+    @pyqtProperty(int, notify=changed)
+    def anisetteState(self):
+        return self._anisette_state
+
     @pyqtProperty(bool, notify=changed)
     def fetchIcons(self):
         return bool(self._prefs.get("fetch_icons", True))
@@ -178,11 +249,15 @@ class Controller(QObject):
     def signIn(self, email: str, password: str) -> None:
         email = email.strip()
         if not email or not password:
-            self._set(error="Enter your Apple Account email and password.")
+            self._set(error=self._t("Enter your Apple Account email and password."))
+            return
+        if self._anisette_state == 0:
+            self.checkAnisette()
+            self._set(error=friendly_error("anisette", self.bridge.anisette_url, self._t))
             return
         self._append_log("info", f"Sign-in started for {mask_account(email)}")
         self._pending = None
-        self._set(error="", stage="working", busy=True, status="Signing in…")
+        self._set(error="", stage="working", busy=True, status=self._t("Signing in…"))
         try:
             self.bridge.start(email, password)
         except RuntimeError as error:
@@ -194,7 +269,7 @@ class Controller(QObject):
             return
         self._append_log("info", "Sync started")
         self._pending = None
-        self._set(error="", busy=True, status="Syncing…")
+        self._set(error="", busy=True, status=self._t("Syncing…"))
         self.bridge.sync()
 
     @pyqtSlot(str)
@@ -203,15 +278,15 @@ class Controller(QObject):
         if kind == "code":
             value = "".join(ch for ch in value if ch.isdigit())
             if len(value) != 6:
-                self._set(error="Enter the six digits shown on your device.")
+                self._set(error=self._t("Enter the six digits shown on your device."))
                 return
         elif kind == "device":
             choices = {str(d.get("index")) for d in self._prompt.get("devices", [])}
             if value not in choices:
-                self._set(error="Choose one of the devices.")
+                self._set(error=self._t("Choose one of the devices."))
                 return
         elif kind in {"password", "passcode"} and not value:
-            self._set(error="This field cannot be empty.")
+            self._set(error=self._t("This field cannot be empty."))
             return
         self._append_log("info", f"Answered {kind or 'prompt'}" + ("" if kind in {"password", "passcode"} else f": {value}" if kind != "code" else ""))
         self._clear_prompt()
@@ -233,7 +308,7 @@ class Controller(QObject):
         clipboard = QGuiApplication.clipboard()
         clipboard.setText(text)
         QTimer.singleShot(CLIPBOARD_CLEAR_MS, lambda: clipboard.clear() if clipboard.text() == text else None)
-        self.toast.emit("Copied — clears in 30 seconds")
+        self.toast.emit(self._t("Copied — clears in 30 seconds"))
 
     @pyqtSlot(str, result="QVariantMap")
     def totp(self, uri: str):
@@ -244,6 +319,46 @@ class Controller(QObject):
             return generate(uri) or {}
         except Exception:  # noqa: BLE001 - a malformed code never breaks the detail view
             return {}
+
+    @pyqtSlot()
+    def checkAnisette(self) -> None:
+        """Probes the anisette service in the background and updates `anisetteState`."""
+        def probe():
+            import urllib.request
+            url = self.bridge.anisette_url.rstrip("/") + "/healthz"
+            try:
+                with urllib.request.urlopen(url, timeout=3) as response:
+                    ok = response.status == 200
+            except Exception:  # noqa: BLE001 - any failure means "not answering"
+                ok = False
+            self.anisetteChecked.emit(ok)
+
+        threading.Thread(target=probe, daemon=True).start()
+
+    anisetteChecked = pyqtSignal(bool)
+
+    @pyqtSlot(str, int, result=str)
+    def iconSource(self, key: str, revision: int) -> str:
+        if not key or not self.icon_store:
+            return ""
+        entry = self.icon_store.meta.get(key, {})
+        return f"image://icons/{key}#{entry.get('v', 0)}" if entry.get("ok") else ""
+
+    @pyqtSlot(str, str, str, int, result=str)
+    def displayName(self, key: str, name: str, title: str, revision: int) -> str:
+        entry = self.icon_store.meta.get(key, {}) if (key and self.icon_store) else {}
+        return (entry.get("name") if not title and entry.get("name") else None) or name
+
+    @pyqtSlot(str, int, result=bool)
+    def isCustomIcon(self, key: str, revision: int) -> bool:
+        return bool(key and self.icon_store and self.icon_store.meta.get(key, {}).get("custom"))
+
+    @pyqtSlot(str, str)
+    def requestIcon(self, key: str, site: str) -> None:
+        """Called by rows as they appear: newest requests are fetched first."""
+        host = icons.normalize_host(site)
+        if host and key and self.fetchIcons and self._ensure_store() and self.icon_store.needs_fetch(key):
+            self._enqueue(key, host, front=True)
 
     @pyqtSlot(bool)
     def setFetchIcons(self, enabled: bool) -> None:
@@ -273,20 +388,21 @@ class Controller(QObject):
                 data = handle.read(icons.MAX_CUSTOM + 1)
             png = icons.sanitize_image(data)
         except (OSError, icons.FetchError) as error:
-            self._set(error=f"That file can't be used as an icon: {error}")
+            self._set(error=self._t("That file can't be used as an icon: {error}").format(error=error))
             return
         self.icon_store.put(key, png, custom=True, name="")
         self._append_log("info", f"Custom icon set for {display}")
-        self._publish()
+        self._bump_icons()
 
     @pyqtSlot(str, str)
     def resetIcon(self, key: str, site: str) -> None:
         if not self._ensure_store() or not key:
             return
         self.icon_store.remove(key)
-        self._publish()
-        if site:
-            self._schedule_icons()
+        self._bump_icons()
+        host = icons.normalize_host(site)
+        if host and self.fetchIcons:
+            self._enqueue(key, host, front=True)
 
     @pyqtSlot()
     def copyLog(self) -> None:
@@ -306,7 +422,7 @@ class Controller(QObject):
             items = []
         self._set_items(items)
         if items:
-            self._set(stage="done", status=f"{len(items)} passwords")
+            self._set(stage="done", status=self._t("{n} passwords").format(n=len(items)))
             self._append_log("info", f"Opened the local vault with {len(items)} passwords")
 
     def _on_message(self, event: dict) -> None:
@@ -326,19 +442,21 @@ class Controller(QObject):
         elif kind == "error":
             text = str(event.get("message", "Unknown error"))
             self._append_log("error", text)
-            self._set(error=text)
+            self._set(error=friendly_error(text, self.bridge.anisette_url, self._t))
+            if "anisette" in text.lower() or "connection" in text.lower():
+                self.checkAnisette()
 
     def _on_finished(self, code: int) -> None:
         self._clear_prompt()
         self._append_log("info" if code == 0 else "error", f"Operation finished (exit {code})")
         if code == 0 and self._pending is not None:
             self._set_items(self._pending)
-            self._set(stage="done", busy=False, status=f"{len(self._items)} passwords")
+            self._set(stage="done", busy=False, status=self._t("{n} passwords").format(n=len(self._items)))
             if self._items:
-                self.toast.emit(f"Keychain up to date — {len(self._items)} passwords")
+                self.toast.emit(self._t("Keychain up to date — {n} passwords").format(n=len(self._items)))
         else:
             self._set(busy=False, stage="done" if self._items else "signin",
-                      status="Stopped" if code else self._status)
+                      status=self._t("Stopped") if code else self._status)
         self._pending = None
 
     # ---- icons -------------------------------------------------------------------------
@@ -359,7 +477,6 @@ class Controller(QObject):
     def _set_items(self, raw: list[dict]) -> None:
         self._raw = list(raw)
         self._publish()
-        self._schedule_icons()
 
     def _publish(self) -> None:
         store = self.icon_store if self._ensure_store() else None
@@ -378,25 +495,39 @@ class Controller(QObject):
         self.vaultChanged.emit()
 
     def _schedule_icons(self) -> None:
+        """Queues every missing icon behind the ones rows asked for (explicit refresh)."""
         if not self.fetchIcons or not self._ensure_store():
             return
-        queued = {key for key, _ in self._icon_jobs}
         for item in self._raw:
             host = icons.normalize_host(item.get("site") or "")
-            if not host:
-                continue
-            key = self.icon_store.key_for(host)
-            if key not in queued and self.icon_store.needs_fetch(key):
+            if host:
+                key = self.icon_store.key_for(host)
+                if self.icon_store.needs_fetch(key):
+                    self._enqueue(key, host, front=False)
+
+    def _enqueue(self, key: str, host: str, *, front: bool) -> None:
+        with self._icon_lock:
+            self._icon_jobs = [job for job in self._icon_jobs if job[0] != key]
+            if front:
+                self._icon_jobs.insert(0, (key, host))
+            else:
                 self._icon_jobs.append((key, host))
-                queued.add(key)
-        if self._icon_jobs and not (self._icon_thread and self._icon_thread.is_alive()):
-            self._append_log("info", f"Fetching website icons for {len(self._icon_jobs)} sites")
-            self._icon_thread = threading.Thread(target=self._icon_worker, daemon=True)
+            start = not (self._icon_thread and self._icon_thread.is_alive())
+            if start:
+                self._icon_thread = threading.Thread(target=self._icon_worker, daemon=True)
+        if start:
             self._icon_thread.start()
 
+    def _next_icon_job(self):
+        with self._icon_lock:
+            return self._icon_jobs.pop(0) if self._icon_jobs and self.fetchIcons else None
+
     def _icon_worker(self) -> None:
-        while self._icon_jobs and self.fetchIcons:
-            key, host = self._icon_jobs.pop(0)
+        while True:
+            job = self._next_icon_job()
+            if job is None:
+                return
+            key, host = job
             try:
                 png, name = icons.fetch_site(host)
                 self.iconFetched.emit(key, png, name, True)
@@ -408,7 +539,12 @@ class Controller(QObject):
         if self.icon_store is None:
             return
         self.icon_store.put(key, png if ok else None, name=name)
-        self._redecorate.start()
+        self._icons_tick.start()
+
+    def _bump_icons(self) -> None:
+        """Rows re-read their icon and name; the list itself is not rebuilt."""
+        self._icon_revision += 1
+        self.iconsChanged.emit()
 
     def _prefs_path(self) -> Path | None:
         try:
@@ -431,7 +567,8 @@ class Controller(QObject):
             return
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w") as handle:
-            json.dump({"fetch_icons": bool(self._prefs.get("fetch_icons", True))}, handle)
+            json.dump({"fetch_icons": bool(self._prefs.get("fetch_icons", True)),
+                       "language": self._prefs.get("language", "system")}, handle)
 
     # ---- helpers -----------------------------------------------------------------------
     def _clear_prompt(self) -> None:

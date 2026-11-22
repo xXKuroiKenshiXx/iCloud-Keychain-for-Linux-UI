@@ -9,7 +9,7 @@ ApplicationWindow {
     minimumWidth: 980
     minimumHeight: 640
     visible: true
-    title: "Passwords"
+    title: icp.tr("Passwords", icp.languageRevision)
     color: "#05070d"
     font.family: "Noto Sans"
 
@@ -55,6 +55,18 @@ ApplicationWindow {
 
     Backdrop { id: backdrop; anchors.fill: parent }
 
+    // Pointer light shared by every glass panel; it trails the cursor for a liquid feel.
+    HoverHandler { id: pointer }
+    Item {
+        id: light
+        anchors.fill: parent
+        property real px: pointer.point.position.x
+        property real py: pointer.point.position.y
+        readonly property bool active: pointer.hovered
+        Behavior on px { SmoothedAnimation { velocity: 1600; duration: 260 } }
+        Behavior on py { SmoothedAnimation { velocity: 1600; duration: 260 } }
+    }
+
     RowLayout {
         anchors.fill: parent
         anchors.margins: 14
@@ -64,6 +76,7 @@ ApplicationWindow {
         Glass {
             id: sidebar
             backdrop: backdrop
+            light: light
             revealDelay: 0
             Layout.preferredWidth: 240
             Layout.fillHeight: true
@@ -86,7 +99,7 @@ ApplicationWindow {
                         }
                         Icon { anchors.centerIn: parent; name: "key"; size: 17; color: "white"; stroke: 2 }
                     }
-                    Text { text: "Passwords"; color: "white"; font.pixelSize: 19; font.weight: Font.Bold }
+                    Text { text: icp.tr("Passwords", icp.languageRevision); color: "white"; font.pixelSize: 19; font.weight: Font.Bold }
                 }
 
                 Field {
@@ -94,7 +107,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     implicitHeight: 36
                     leading: "search"
-                    placeholderText: "Search"
+                    placeholderText: icp.tr("Search", icp.languageRevision)
                     enabled: !win.needsSignIn
                     onTextChanged: { win.query = text; if (!win.vaultSection) win.section = "all" }
                 }
@@ -109,7 +122,7 @@ ApplicationWindow {
                     delegate: SidebarRow {
                         required property var modelData
                         Layout.fillWidth: true
-                        label: modelData.label
+                        label: icp.tr(modelData.label, icp.languageRevision)
                         icon: modelData.icon
                         badge: icp.items.length ? String(win.count(modelData.key)) : ""
                         active: win.section === modelData.key
@@ -121,15 +134,15 @@ ApplicationWindow {
 
                 SidebarRow {
                     Layout.fillWidth: true
-                    label: icp.signedIn ? "Apple Account" : "Sign In"
+                    label: icp.signedIn ? icp.tr("Apple Account", icp.languageRevision) : icp.tr("Sign In", icp.languageRevision)
                     icon: "person"
-                    detail: icp.busy ? "Working…" : ""
+                    detail: icp.busy ? "•" : ""
                     active: win.section === "account"
                     onClicked: win.section = "account"
                 }
                 SidebarRow {
                     Layout.fillWidth: true
-                    label: "Settings"
+                    label: icp.tr("Settings", icp.languageRevision)
                     icon: "sliders"
                     active: win.section === "settings"
                     onClicked: win.section = "settings"
@@ -156,6 +169,7 @@ ApplicationWindow {
 
                 Glass {
                     backdrop: backdrop
+                    light: light
                     revealDelay: 90
                     Layout.preferredWidth: 340
                     Layout.fillHeight: true
@@ -169,14 +183,14 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             Layout.margins: 10
                             Text {
-                                text: win.section === "codes" ? "Codes" : win.section === "wifi" ? "Wi-Fi" : "All Passwords"
+                                text: win.section === "codes" ? icp.tr("Codes", icp.languageRevision) : win.section === "wifi" ? icp.tr("Wi-Fi", icp.languageRevision) : icp.tr("All Passwords", icp.languageRevision)
                                 color: "white"; font.pixelSize: 22; font.weight: Font.Bold
                                 Layout.fillWidth: true
                             }
                             GlassButton {
                                 compact: true
                                 icon: "sync"
-                                text: icp.busy ? "Syncing" : "Sync"
+                                text: icp.busy ? icp.tr("Syncing", icp.languageRevision) : icp.tr("Sync", icp.languageRevision)
                                 enabled: !icp.busy && icp.signedIn
                                 onClicked: icp.sync()
                             }
@@ -191,6 +205,8 @@ ApplicationWindow {
                             model: win.visibleItems
                             boundsBehavior: Flickable.StopAtBounds
                             currentIndex: -1
+                            cacheBuffer: 240
+                            reuseItems: false
                             highlightFollowsCurrentItem: true
                             highlightMoveDuration: 280
                             highlightMoveVelocity: -1
@@ -220,10 +236,11 @@ ApplicationWindow {
                                 id: rowRoot
                                 required property var modelData
                                 required property int index
+                                readonly property string shownName: icp.displayName(modelData.iconKey, modelData.name, modelData.title || "", icp.iconRevision)
                                 width: ListView.view.width - 8
                                 opacity: list.animateRows ? 0 : 1
                                 transform: Translate { id: rowLift; y: list.animateRows ? 10 : 0 }
-                                Component.onCompleted: if (list.animateRows) rowIn.start()
+                                Component.onCompleted: { if (list.animateRows) rowIn.start(); icp.requestIcon(modelData.iconKey, modelData.site || "") }
                                 SequentialAnimation {
                                     id: rowIn
                                     PauseAnimation { duration: Math.min(rowRoot.index, 12) * 28 }
@@ -242,18 +259,18 @@ ApplicationWindow {
                                     anchors.leftMargin: 10
                                     anchors.rightMargin: 12
                                     spacing: 12
-                                    Monogram { label: modelData.display; source: modelData.icon || ""; size: 36 }
+                                    Monogram { label: rowRoot.shownName; source: icp.iconSource(modelData.iconKey, icp.iconRevision); size: 36 }
                                     ColumnLayout {
                                         Layout.fillWidth: true
                                         spacing: 2
                                         Text {
-                                            text: modelData.display
+                                            text: rowRoot.shownName
                                             textFormat: Text.PlainText
                                             color: "white"; font.pixelSize: 14; font.weight: Font.DemiBold
                                             elide: Text.ElideRight; Layout.fillWidth: true
                                         }
                                         Text {
-                                            text: modelData.username || "No user name"
+                                            text: modelData.username || icp.tr("No user name", icp.languageRevision)
                                             textFormat: Text.PlainText
                                             color: Qt.rgba(0.86, 0.9, 1, 0.62); font.pixelSize: 12 + 1
                                             elide: Text.ElideRight; Layout.fillWidth: true
@@ -277,7 +294,7 @@ ApplicationWindow {
                                 horizontalAlignment: Text.AlignHCenter
                                 wrapMode: Text.WordWrap
                                 textFormat: Text.PlainText
-                                text: win.query ? "No results for “" + win.query + "”" : "Nothing here yet"
+                                text: win.query ? icp.tr("No results for “{q}”", icp.languageRevision).replace("{q}", win.query) : icp.tr("Nothing here yet", icp.languageRevision)
                                 color: Qt.rgba(0.86, 0.9, 1, 0.55); font.pixelSize: 13 + 1
                             }
                         }
@@ -286,6 +303,7 @@ ApplicationWindow {
 
                 Glass {
                     backdrop: backdrop
+                    light: light
                     revealDelay: 180
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -311,6 +329,7 @@ ApplicationWindow {
                     anchors.centerIn: parent
                     width: Math.min(parent.width - 40, 470)
                     backdrop: backdrop
+                    light: light
                     onFinished: win.section = "all"
                 }
             }
@@ -318,6 +337,7 @@ ApplicationWindow {
             // Settings + debug console
             SettingsPage {
                 anchors.fill: parent
+                light: light
                 readonly property bool shown: win.section === "settings"
                 opacity: shown ? 1 : 0
                 scale: shown ? 1 : 0.985

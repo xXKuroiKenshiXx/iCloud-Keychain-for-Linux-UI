@@ -144,6 +144,7 @@ class GlassControllerTests(unittest.TestCase):
         from icp.gui.glass import Controller
         with mock.patch("icp.gui.bridge.IcpBridge.load_vault", return_value=[]):
             controller = Controller("http://127.0.0.1:1")
+        controller._language = "en"
         controller._append_log("warning", "keyring unavailable")
         controller._append_log("warning", "keyring unavailable")
         self.assertEqual(controller.log[-1]["text"], "keyring unavailable  (×2)")
@@ -154,3 +155,24 @@ class GlassControllerTests(unittest.TestCase):
             self.assertIn("six digits", controller.error)
             controller.answer("123 456")
             respond.assert_called_once_with("code", "123456")
+
+
+class SignInExperienceTests(unittest.TestCase):
+    def test_known_failures_get_plain_explanations(self):
+        from icp.gui.glass import friendly_error
+        self.assertIn("Wait at least an hour", friendly_error("gsa: request status 429"))
+        self.assertIn("HTTP 503", friendly_error("init request failed (HTTP 503)"))
+        self.assertIn("incorrect", friendly_error("GSAError ec=-22406"))
+        self.assertIn("127.0.0.1:6969", friendly_error("AnisetteError: connection refused", "http://127.0.0.1:6969"))
+        self.assertEqual(friendly_error("something new"), "something new")
+
+    def test_visible_rows_jump_the_icon_queue(self):
+        from icp.gui.glass import Controller
+        with mock.patch("icp.gui.bridge.IcpBridge.load_vault", return_value=[]):
+            controller = Controller("http://127.0.0.1:1")
+        controller._icon_thread = mock.Mock(is_alive=lambda: True)  # keep the worker idle
+        controller._enqueue("a", "a.example", front=False)
+        controller._enqueue("b", "b.example", front=False)
+        controller._enqueue("b", "b.example", front=True)
+        controller._enqueue("c", "c.example", front=True)
+        self.assertEqual([key for key, _ in controller._icon_jobs], ["c", "b", "a"])

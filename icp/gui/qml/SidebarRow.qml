@@ -29,11 +29,16 @@ Rectangle {
             Layout.fillWidth: true
             elide: Text.ElideRight
         }
-        Text {
+        Rectangle {
             visible: root.detail !== ""
-            text: root.detail
-            color: Qt.rgba(0.86, 0.9, 1, 0.55)
-            font.pixelSize: 11 + 1
+            width: 8; height: 8; radius: 4
+            color: "#8ec2ff"
+            SequentialAnimation on opacity {
+                running: root.detail !== ""
+                loops: Animation.Infinite
+                NumberAnimation { from: 1; to: 0.25; duration: 700; easing.type: Easing.InOutSine }
+                NumberAnimation { from: 0.25; to: 1; duration: 700; easing.type: Easing.InOutSine }
+            }
         }
         Text {
             visible: root.badge !== ""

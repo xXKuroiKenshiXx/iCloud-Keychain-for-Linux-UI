@@ -12,7 +12,7 @@ Glass {
         anchors.margins: 28
         spacing: 18
 
-        Text { text: "Settings"; color: "white"; font.pixelSize: 26; font.weight: Font.Bold }
+        Text { text: icp.tr("Settings", icp.languageRevision); color: "white"; font.pixelSize: 26; font.weight: Font.Bold }
 
         Rectangle {
             Layout.fillWidth: true
@@ -25,9 +25,9 @@ Glass {
                 id: info
                 width: parent.width
                 spacing: 0
-                InfoRow { icon: "globe"; title: "Anisette service"; value: icp.anisetteUrl }
+                InfoRow { icon: "globe"; title: icp.tr("Anisette service", icp.languageRevision); value: icp.anisetteUrl }
                 Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
-                InfoRow { icon: "folder"; title: "Session and vault"; value: icp.dataDir }
+                InfoRow { icon: "folder"; title: icp.tr("Session and vault", icp.languageRevision); value: icp.dataDir }
                 Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
                 RowLayout {
                     Layout.fillWidth: true
@@ -37,19 +37,97 @@ Glass {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 2
-                        Text { text: "Website icons and names"; color: "white"; font.pixelSize: 14 }
+                        Text { text: icp.tr("Website icons and names", icp.languageRevision); color: "white"; font.pixelSize: 14 }
                         Text {
                             Layout.fillWidth: true
                             wrapMode: Text.WordWrap
-                            text: "Fetched directly from each saved site over HTTPS, never through an icon service, and stored encrypted on this computer."
+                            text: icp.tr("Fetched directly from each saved site over HTTPS, never through an icon service, and stored encrypted on this computer.", icp.languageRevision)
                             color: Qt.rgba(0.86, 0.9, 1, 0.6); font.pixelSize: 12
                         }
                     }
-                    GlassButton { compact: true; icon: "sync"; text: "Refresh"; enabled: icp.fetchIcons; onClicked: icp.refreshIcons() }
+                    GlassButton { compact: true; icon: "sync"; text: icp.tr("Refresh", icp.languageRevision); enabled: icp.fetchIcons; onClicked: icp.refreshIcons() }
                     Toggle { checked: icp.fetchIcons; onToggled: (on) => icp.setFetchIcons(on) }
                 }
                 Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
-                InfoRow { icon: "person"; title: "Status"; value: icp.busy ? icp.status : (icp.signedIn ? "Signed in · " + icp.items.length + " passwords" : "Not signed in") }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.margins: 14
+                    spacing: 14
+                    Icon { name: "globe"; size: 20; color: "#8ec2ff" }
+                    Text { text: icp.tr("Language", icp.languageRevision); color: "white"; font.pixelSize: 14; Layout.fillWidth: true }
+                    GlassButton {
+                        id: languageButton
+                        compact: true
+                        icon: "chevron"
+                        text: {
+                            var options = icp.languageOptions
+                            for (var i = 0; i < options.length; i++)
+                                if (options[i].code === icp.languagePreference) return options[i].name
+                            return options[0].name
+                        }
+                        onClicked: languageMenu.open()
+                        Popup {
+                            id: languageMenu
+                            y: languageButton.height + 6
+                            x: languageButton.width - width
+                            width: 230
+                            padding: 6
+                            modal: false
+                            focus: true
+                            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                            enter: Transition { ParallelAnimation {
+                                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 180; easing.type: Easing.OutCubic }
+                                NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: 260; easing.type: Easing.OutBack }
+                            } }
+                            exit: Transition { NumberAnimation { property: "opacity"; to: 0; duration: 120 } }
+                            background: Rectangle {
+                                radius: 14
+                                color: Qt.rgba(0.07, 0.1, 0.18, 0.96)
+                                border.width: 1
+                                border.color: Qt.rgba(1, 1, 1, 0.18)
+                            }
+                            contentItem: Column {
+                                spacing: 2
+                                Repeater {
+                                    model: icp.languageOptions
+                                    delegate: Rectangle {
+                                        id: option
+                                        required property var modelData
+                                        width: 218
+                                        height: 34
+                                        radius: 9
+                                        color: optionMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent"
+                                        Row {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: 10
+                                            spacing: 8
+                                            Icon {
+                                                name: "check"; size: 14; color: "#8ec2ff"
+                                                opacity: option.modelData.code === icp.languagePreference ? 1 : 0
+                                                anchors.verticalCenter: parent.verticalCenter
+                                            }
+                                            Text {
+                                                text: option.modelData.name
+                                                color: "white"; font.pixelSize: 13
+                                                anchors.verticalCenter: parent.verticalCenter
+                                            }
+                                        }
+                                        MouseArea {
+                                            id: optionMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: { icp.setLanguage(option.modelData.code); languageMenu.close() }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Rectangle { Layout.fillWidth: true; Layout.leftMargin: 50; implicitHeight: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+                InfoRow { icon: "person"; title: icp.tr("Status", icp.languageRevision); value: icp.busy ? icp.status : (icp.signedIn ? icp.tr("Signed in · {n} passwords", icp.languageRevision).replace("{n}", icp.items.length) : icp.tr("Not signed in", icp.languageRevision)) }
             }
         }
 
@@ -58,14 +136,14 @@ Glass {
             Layout.topMargin: 6
             spacing: 10
             Icon { name: "terminal"; size: 18; color: "#8ec2ff" }
-            Text { text: "Debug console"; color: "white"; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
+            Text { text: icp.tr("Debug console", icp.languageRevision); color: "white"; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
             GlassButton {
                 compact: true
-                text: root.follow ? "Following" : "Follow"
+                text: root.follow ? icp.tr("Following", icp.languageRevision) : icp.tr("Follow", icp.languageRevision)
                 onClicked: { root.follow = !root.follow; if (root.follow) console_.positionViewAtEnd() }
             }
-            GlassButton { compact: true; icon: "copy"; text: "Copy Log"; onClicked: icp.copyLog() }
-            GlassButton { compact: true; text: "Clear"; onClicked: icp.clearLog() }
+            GlassButton { compact: true; icon: "copy"; text: icp.tr("Copy Log", icp.languageRevision); onClicked: icp.copyLog() }
+            GlassButton { compact: true; text: icp.tr("Clear", icp.languageRevision); onClicked: icp.clearLog() }
         }
 
         Rectangle {
@@ -104,7 +182,7 @@ Glass {
                 Text {
                     anchors.centerIn: parent
                     visible: console_.count === 0
-                    text: "Engine activity appears here step by step."
+                    text: icp.tr("Engine activity appears here step by step.", icp.languageRevision)
                     color: Qt.rgba(0.86, 0.9, 1, 0.45); font.pixelSize: 13
                 }
             }

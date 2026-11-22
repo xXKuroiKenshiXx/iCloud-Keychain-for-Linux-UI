@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Shapes
 
 // A Liquid Glass surface: a blurred, saturated copy of the backdrop behind it, a light
 // tint, a hairline rim, a specular top edge, and a soft drop shadow.
@@ -10,6 +11,7 @@ Item {
     property real tintTop: 0.13
     property real tintBottom: 0.05
     property bool shadow: true
+    property Item light: null             // pointer glow source (Main's `light`)
     property int revealDelay: -1          // >= 0 plays the entrance after that many ms
 
     opacity: revealDelay < 0 ? 1 : 0
@@ -91,6 +93,28 @@ Item {
         gradient: Gradient {
             GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
             GradientStop { position: 1.0; color: Qt.rgba(1, 1, 1, 0.0) }
+        }
+    }
+
+    // Liquid sheen: a soft light that trails the pointer across the glass.
+    Shape {
+        id: sheen
+        anchors.fill: parent
+        visible: root.light !== null
+        opacity: root.light && root.light.active ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
+        preferredRendererType: Shape.CurveRenderer
+        readonly property point spot: root.light ? root.mapFromItem(root.light, root.light.px, root.light.py) : Qt.point(-1000, -1000)
+        ShapePath {
+            strokeColor: "transparent"
+            fillGradient: RadialGradient {
+                centerX: sheen.spot.x; centerY: sheen.spot.y; centerRadius: 300
+                focalX: centerX; focalY: centerY
+                GradientStop { position: 0.0; color: Qt.rgba(0.85, 0.92, 1, 0.11) }
+                GradientStop { position: 0.55; color: Qt.rgba(0.85, 0.92, 1, 0.03) }
+                GradientStop { position: 1.0; color: Qt.rgba(0.85, 0.92, 1, 0.0) }
+            }
+            PathRectangle { x: 0; y: 0; width: sheen.width; height: sheen.height; radius: root.radius }
         }
     }
 }

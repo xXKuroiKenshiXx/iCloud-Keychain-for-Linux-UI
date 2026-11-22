@@ -9,6 +9,8 @@
   A fork of <a href="https://github.com/Sank6/iCloud-Keychain-for-Linux">Sank6/iCloud-Keychain-for-Linux</a> that adds a Qt Quick interface to its <code>icp</code> engine.
 </p>
 
+<p align="center"><b>English</b> · <a href="README.es.md">Español</a></p>
+
 <p align="center">
   <img src="docs/screenshots/vault.png" width="820" alt="Password list and detail with website icons">
 </p>
@@ -35,6 +37,14 @@ ICP_ANISETTE_URL=http://127.0.0.1:6969 ./iCloud-Keychain-x86_64.AppImage --cli s
 
 You still need an anisette service (next section); Apple's libraries cannot be redistributed.
 
+**Supported systems:** 64-bit x86 Linux with glibc 2.34 or newer, which covers Ubuntu 22.04+,
+Debian 12+, Fedora 35+, Linux Mint 21+, Arch, Manjaro, and openSUSE Tumbleweed. Alpine (musl)
+and ARM machines are not supported by the AppImage; run from source there. The window uses
+Wayland or X11.
+
+**Languages:** English, Español, Português, Français, Deutsch, and Italiano. The window follows
+the system language and falls back to English; change it under Settings → Language.
+
 ## What you'll need
 
 A configured Anisette server:
@@ -48,6 +58,14 @@ A configured Anisette server:
   hosted on a remote server.
 
 You can also use any trusted third-party anisette server.
+
+**What the anisette server sees.** `icp` only sends it two empty `GET` requests and receives
+device headers back. Your Apple Account, password, verification codes, device passcode, and
+passwords never go to it: the password is checked by Apple with SRP and the keychain is
+decrypted on your computer. A remote server still learns your IP address and when you sign
+in, and a malicious one could hand out a broken identity, so prefer one that runs on your own
+machine. This fork was tested with Anisette-on-Wine, which listens only on `127.0.0.1` and
+talks only to `gsa.apple.com`.
 
 ```
 export ICP_ANISETTE_URL="https://your-anisette-server.example"
