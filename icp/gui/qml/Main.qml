@@ -186,13 +186,27 @@ ApplicationWindow {
                                 text: win.section === "codes" ? icp.tr("Codes", icp.languageRevision) : win.section === "wifi" ? icp.tr("Wi-Fi", icp.languageRevision) : icp.tr("All Passwords", icp.languageRevision)
                                 color: "white"; font.pixelSize: 22; font.weight: Font.Bold
                                 Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                elide: Text.ElideRight
+                                fontSizeMode: Text.HorizontalFit
+                                minimumPixelSize: 16
                             }
                             GlassButton {
+                                id: syncButton
                                 compact: true
                                 icon: "sync"
-                                text: icp.busy ? icp.tr("Syncing", icp.languageRevision) : icp.tr("Sync", icp.languageRevision)
+                                implicitWidth: implicitHeight
                                 enabled: !icp.busy && icp.signedIn
                                 onClicked: icp.sync()
+                                RotationAnimation on rotation {
+                                    running: icp.busy
+                                    from: 0; to: 360; duration: 1100; loops: Animation.Infinite
+                                    onStopped: syncButton.rotation = 0
+                                }
+                                ToolTip.visible: syncHover.hovered
+                                ToolTip.delay: 400
+                                ToolTip.text: icp.busy ? icp.tr("Syncing", icp.languageRevision) : icp.tr("Sync Now", icp.languageRevision)
+                                HoverHandler { id: syncHover }
                             }
                         }
 

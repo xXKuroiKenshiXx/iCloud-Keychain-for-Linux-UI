@@ -74,82 +74,49 @@ export ICP_ANISETTE_URL="https://your-anisette-server.example"
 The configured URL must return anisette headers as JSON to a `GET` request. Its
 `/v3/client_info` endpoint must return `client_info` and `user_agent`.
 
-## Install
-
-From the project folder:
-
-```
-python3 -m venv .venv && .venv/bin/pip install -e .
-source .venv/bin/activate
-```
-
-## Desktop app (Qt)
+## Using the app
 
 <p align="center">
   <img src="docs/screenshots/confirm.png" width="410" alt="Keychain join confirmation naming the device">
   <img src="docs/screenshots/settings.png" width="410" alt="Settings with the debug console">
 </p>
 
-This fork adds a Qt Quick window in a Liquid Glass style for everything `icp` does in the
-terminal: sign-in, the 2FA code, choosing the escrow device, the irreversible passcode step
-(which names the device whose passcode you need), browsing passwords with live verification
-codes, and syncing. **Settings** includes a debug console that shows each engine step as it
-happens. `icp-gui --classic` opens the earlier Qt Widgets window.
+Open the AppImage (or `icp-gui` from source) and go to **Apple Account**:
 
-Website icons and names are fetched directly from each saved site (HTTPS only, public
-addresses only, size-limited, re-encoded as PNG) and kept in an encrypted cache under
-`~/.config/icp/icons` whose file names do not reveal the sites. Turn this off in Settings to
-make the window fully offline, or set any login's icon by hand with **Change Icon…**. The QML
-layer itself has no network access.
+1. **Account:** your Apple Account email and password.
+2. **Code:** the six-digit code Apple shows on your iPhone, iPad or Mac. It is only asked when
+   this computer is not verified yet.
+3. **Device:** pick the device whose screen passcode you know.
+4. **Passcode:** the passcode you use to unlock that device, not your Apple Account password
+   and not the six-digit code. Each wrong passcode uses one of about ten recovery attempts;
+   after the last one Apple permanently erases that recovery record. One correct entry is safe.
 
-```
-.venv/bin/pip install -e '.[gui]'
-icp-gui          # or: icp gui
-```
+After that the vault opens on start, the round **Sync** button refreshes it, and the window
+also signs in again by itself when the iCloud session expires. **Settings** has the language,
+website icons, and a debug console that shows each engine step as it happens.
 
-It uses the same session, vault, and `ICP_ANISETTE_URL` as the CLI, so both can be used
-interchangeably. On distributions that package PyQt6 (`python3-pyqt6`), create the venv with
-`--system-site-packages` instead of installing the extra.
+**Website icons and names** are fetched directly from each saved site (HTTPS only, public
+addresses only, size-limited, re-encoded as PNG) for the rows you are looking at, and kept in
+an encrypted cache under `~/.config/icp/icons` whose file names do not reveal the sites. Turn
+this off in Settings to keep the window fully offline, or set any login's icon by hand with
+**Change Icon…**.
 
-## Sign in
+Prefer the terminal? Every step is also available as an `icp` command: see
+[docs/CLI.md](docs/CLI.md).
 
-```
-icp login
-```
-
-This will walk you through the login: enter your Apple ID, password, and the 2FA code Apple
-sends to your other devices. `icp` then asks for a **device passcode or iCloud Security Code** so
-it can join your keychain.
-
-- You're only asked for your password and 2FA code **once**. `icp` should stay signed in for a year after this.
-- The passcode step is **important and can't be undone**: entering the wrong passcode too many
-  times (about 10) will permanently lock your keychain recovery. One correct entry is
-  perfectly safe.
-- Your 2FA code and passcode are used immediately and **never saved**. Your password is kept
-  **encrypted on your computer** (in your login keyring) so `icp` can stay signed in without
-  asking you again - it never leaves your machine. Your access tokens and passwords are stored
-  the same way.
-
-## Browse your passwords
+## Run from source
 
 ```
-icp show
+python3 -m venv .venv && .venv/bin/pip install -e '.[gui]'
+.venv/bin/icp-gui        # window
+.venv/bin/icp --help     # command line
 ```
 
-Opens a full-screen list - start typing to filter, **Enter** to reveal a password,
-**Ctrl+P** / **Ctrl+U** to copy the password / username to the clipboard, **Esc** to quit. Add a word to search directly, or `--plain` for plain text:
+On distributions that package PyQt6 (`python3-pyqt6`), create the venv with
+`--system-site-packages` and install `-e .` instead. `icp-gui --classic` opens the earlier Qt
+Widgets window.
 
-```
-icp show github
-```
-
-## Verification codes
-
-If a login has an authenticator code set up in the Passwords app, `icp` picks it up too. `icp show`
-lists the current 6-digit code next to the login with the seconds left before it changes, counting
-down live.
-
-## Set up the browser extension
+## Browser extension
 
 The `extension/` folder works in Chromium based browsers and Firefox.
 
@@ -181,7 +148,7 @@ The `extension/` folder works in Chromium based browsers and Firefox.
 
 If you ever move this project to a different folder, just run `host/install.sh` again.
 
-## Filling in passwords
+### Filling in passwords
 
 - On a sign-in page, click the username or password box - an **iCloud Passwords** dropdown appears
   with matching logins. Click one to fill it in (it handles email-first pages like Google too).
@@ -191,36 +158,6 @@ If you ever move this project to a different folder, just run `host/install.sh` 
   Pages that split the code across six separate boxes are filled a digit at a time. The code is
   always regenerated at the moment you click, so it is never a stale one, and the toolbar popup
   shows the code next to each login (click it to copy).
-
-## Keeping your passwords up to date
-
-Your passwords are a snapshot, so new or changed ones need a refresh. This happens
-**automatically** in the background whenever the snapshot is more than 6 hours old - you don't have
-to do anything. To refresh right now:
-
-```
-icp sync
-```
-
-Syncs are paced so Apple is never hammered: at most one every 5 minutes (`--force` skips that),
-and after a failure the next try waits longer (5 min, 10, 20 ... up to 6 h, or whatever Apple's
-`Retry-After` asks for). Background syncs (`icp sync --background`, used by the browser helper and
-timers) never sign in with your password and never trigger a verification code on your devices -
-if your sign-in has expired they stop and wait for `icp login`. `icp status` shows the state.
-
-Shared password groups you created in the Passwords app are synced too; groups someone else
-shared with you are not yet.
-
-## All commands
-
-```
-login    sign in, join your iCloud Keychain, and download your passwords
-show     browse and search your passwords and Hide My Email addresses
-sync     refresh your passwords now (--background for unattended runs, --force)
-status   last sync, next allowed sync, whether a login is needed (--json)
-diag     read-only diagnostics: zones, groups (counts only, no secrets)
-logout   sign out (use --wipe-device to also forget this device)
-```
 
 ## Security notes for the desktop app
 

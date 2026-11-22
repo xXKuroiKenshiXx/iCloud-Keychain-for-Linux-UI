@@ -73,7 +73,7 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[gui]'
 .venv/bin/icp --help     # línea de comandos
 ```
 
-## Iniciar sesión
+## Usar la app
 
 <p align="center">
   <img src="docs/screenshots/confirm.png" width="410" alt="Confirmación antes de unirse al llavero">
@@ -89,8 +89,12 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[gui]'
    intentos; con el último, Apple borra para siempre ese registro de recuperación. Una entrada
    correcta es segura.
 
-Después la bóveda se abre sola al iniciar la app y **Sincronizar** la actualiza. En la terminal,
-lo mismo se hace con `icp login`, `icp show` y `icp sync`.
+Después la bóveda se abre sola al iniciar la app y el botón redondo de **sincronizar** la
+actualiza. En **Ajustes** están el idioma, los íconos de los sitios y una consola de depuración
+que muestra cada paso del motor.
+
+¿Preferís la terminal? Todo se puede hacer también con comandos `icp`: ver
+[docs/CLI.md](docs/CLI.md) (en inglés).
 
 ## Íconos de los sitios
 
@@ -103,7 +107,7 @@ con **Cambiar ícono…**.
 ## Extensión del navegador
 
 La carpeta `extension/` funciona en navegadores Chromium y Firefox. Seguí la sección *Set up the browser extension* del
-[README en inglés](README.md#set-up-the-browser-extension) y ejecutá `host/install.sh`.
+[README en inglés](README.md#browser-extension) y ejecutá `host/install.sh`.
 
 ## Seguridad
 

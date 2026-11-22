@@ -46,3 +46,13 @@ class LanguageTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EngineMessageTests(unittest.TestCase):
+    def test_engine_messages_are_shown_in_the_chosen_language(self):
+        self.assertEqual(i18n.translate_engine("Already joined; syncing...", "es"), "Ya estás unido; sincronizando…")
+        self.assertEqual(i18n.translate_engine("Synced 42 credential(s) into the vault.", "de"), "42 Passwörter entschlüsselt.")
+        self.assertEqual(i18n.translate_engine("Joining iCloud Keychain will use the passcode of: iPhone (A1)", "en"),
+                         "You'll need the passcode of iPhone (A1).")
+        self.assertEqual(i18n.translate_engine("sign-in failed: HTTP 500", "fr"), "Échec de la connexion : HTTP 500")
+        self.assertEqual(i18n.translate_engine("something unexpected", "es"), "something unexpected")

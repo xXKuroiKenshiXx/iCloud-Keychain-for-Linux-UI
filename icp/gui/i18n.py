@@ -3,6 +3,8 @@ English. `{name}` placeholders are filled by the caller after translation."""
 
 from __future__ import annotations
 
+import re
+
 LANGUAGES = {
     "en": "English",
     "es": "Español",
@@ -69,7 +71,7 @@ _T = {
     "Account": ("Cuenta", "Conta", "Compte", "Account", "Account"),
     "Code": ("Código", "Código", "Code", "Code", "Codice"),
     "Device": ("Dispositivo", "Dispositivo", "Appareil", "Gerät", "Dispositivo"),
-    "Passcode": ("Código de desbloqueo", "Código", "Code d’accès", "Gerätecode", "Codice"),
+    "Passcode": ("Código de desbloqueo", "Código de desbloqueio", "Code d’accès", "Gerätecode", "Codice di sblocco"),
     "Sign in with your Apple Account": ("Inicia sesión con tu cuenta de Apple", "Inicie sessão com a sua Conta Apple", "Connectez-vous avec votre compte Apple", "Mit deinem Apple Account anmelden", "Accedi con il tuo Account Apple"),
     "Connecting to iCloud": ("Conectando con iCloud", "A ligar ao iCloud", "Connexion à iCloud", "Verbindung mit iCloud", "Connessione a iCloud"),
     "Enter the verification code": ("Ingresa el código de verificación", "Introduza o código de verificação", "Saisissez le code de validation", "Bestätigungscode eingeben", "Inserisci il codice di verifica"),
@@ -177,6 +179,86 @@ _T = {
         "Il codice del dispositivo non è stato accettato. Ogni codice errato consuma uno dei circa dieci tentativi; controlla il dispositivo prima di riprovare."),
     "Cancelled. Nothing was changed.": ("Cancelado. No se cambió nada.", "Cancelado. Nada foi alterado.", "Annulé. Rien n’a été modifié.", "Abgebrochen. Nichts wurde geändert.", "Annullato. Non è stato modificato nulla."),
 }
+
+# ---- engine messages (icp prints these in English; the window shows them translated)
+_T.update({
+    "Already joined; syncing…": ("Ya estás unido; sincronizando…", "Já aderiu; a sincronizar…", "Déjà membre ; synchronisation…", "Bereits beigetreten; wird synchronisiert …", "Già unito; sincronizzazione…"),
+    "Looking for your devices' recovery records…": ("Buscando los registros de recuperación de tus dispositivos…", "A procurar os registos de recuperação dos seus dispositivos…", "Recherche des enregistrements de récupération de vos appareils…", "Wiederherstellungseinträge deiner Geräte werden gesucht …", "Ricerca dei record di recupero dei tuoi dispositivi…"),
+    "Several devices can let this computer in. Pick one.": ("Varios dispositivos pueden dar acceso a esta computadora. Elige uno.", "Vários dispositivos podem dar acesso a este computador. Escolha um.", "Plusieurs appareils peuvent autoriser cet ordinateur. Choisissez-en un.", "Mehrere Geräte können diesen Computer zulassen. Wähle eines.", "Più dispositivi possono autorizzare questo computer. Scegline uno."),
+    "Using {device}, the only device available.": ("Se usará {device}, el único dispositivo disponible.", "Será usado {device}, o único dispositivo disponível.", "Utilisation de {device}, le seul appareil disponible.", "{device} wird verwendet, das einzige verfügbare Gerät.", "Verrà usato {device}, l’unico dispositivo disponibile."),
+    "You'll need the passcode of {device}.": ("Vas a necesitar el código de desbloqueo de {device}.", "Vai precisar do código de desbloqueio de {device}.", "Il vous faudra le code de déverrouillage de {device}.", "Du brauchst den Code zum Entsperren von {device}.", "Ti servirà il codice di sblocco di {device}."),
+    "This step can't be undone: each wrong passcode uses one of about ten attempts.": ("Este paso no se puede deshacer: cada código incorrecto gasta uno de unos diez intentos.", "Este passo não pode ser desfeito: cada código errado gasta uma de cerca de dez tentativas.", "Cette étape est irréversible : chaque code erroné consomme l’une des dix tentatives environ.", "Dieser Schritt ist endgültig: Jeder falsche Code verbraucht einen von etwa zehn Versuchen.", "Questo passaggio è irreversibile: ogni codice errato consuma uno dei circa dieci tentativi."),
+    "Stopped before using any recovery attempt. You're signed in but haven't joined the keychain yet.": ("Se detuvo sin gastar ningún intento de recuperación. Tienes la sesión iniciada, pero todavía no te uniste al llavero.", "Parou sem gastar nenhuma tentativa de recuperação. Tem a sessão iniciada, mas ainda não aderiu ao Porta-chaves.", "Arrêté sans consommer de tentative de récupération. Vous êtes connecté mais n’avez pas encore rejoint le trousseau.", "Ohne Wiederherstellungsversuch angehalten. Du bist angemeldet, aber noch nicht dem Schlüsselbund beigetreten.", "Interrotto senza usare tentativi di recupero. Hai eseguito l’accesso ma non ti sei ancora unito al portachiavi."),
+    "Joined the keychain. Decrypted {n} passwords.": ("Te uniste al llavero. Se descifraron {n} contraseñas.", "Aderiu ao Porta-chaves. Foram desencriptadas {n} senhas.", "Trousseau rejoint. {n} mots de passe déchiffrés.", "Dem Schlüsselbund beigetreten. {n} Passwörter entschlüsselt.", "Unito al portachiavi. {n} password decifrate."),
+    "Decrypted {n} passwords.": ("Se descifraron {n} contraseñas.", "Foram desencriptadas {n} senhas.", "{n} mots de passe déchiffrés.", "{n} Passwörter entschlüsselt.", "{n} password decifrate."),
+    "Signed in as {user}.": ("Sesión iniciada como {user}.", "Sessão iniciada como {user}.", "Connecté en tant que {user}.", "Angemeldet als {user}.", "Accesso eseguito come {user}."),
+    "Apple sent a verification code.": ("Apple envió un código de verificación.", "A Apple enviou um código de verificação.", "Apple a envoyé un code de validation.", "Apple hat einen Bestätigungscode gesendet.", "Apple ha inviato un codice di verifica."),
+    "Hide My Email needs its own verification code.": ("Ocultar mi correo necesita su propio código de verificación.", "Ocultar o meu e-mail precisa do seu próprio código de verificação.", "Masquer mon adresse e-mail demande son propre code de validation.", "„E-Mail-Adresse verbergen“ benötigt einen eigenen Bestätigungscode.", "Nascondi la mia email richiede un proprio codice di verifica."),
+    "Saved {n} Hide My Email addresses.": ("Se guardaron {n} direcciones de Ocultar mi correo.", "Foram guardados {n} endereços de Ocultar o meu e-mail.", "{n} adresses Masquer mon adresse e-mail enregistrées.", "{n} Adressen von „E-Mail-Adresse verbergen“ gespeichert.", "Salvati {n} indirizzi di Nascondi la mia email."),
+    "Session expired; signing in again with the saved password…": ("La sesión expiró; iniciando sesión otra vez con la contraseña guardada…", "A sessão expirou; a iniciar sessão novamente com a senha guardada…", "Session expirée ; reconnexion avec le mot de passe enregistré…", "Sitzung abgelaufen; erneute Anmeldung mit dem gespeicherten Passwort …", "Sessione scaduta; nuovo accesso con la password salvata…"),
+    "Sign-in failed: {detail}": ("Falló el inicio de sesión: {detail}", "O início de sessão falhou: {detail}", "Échec de la connexion : {detail}", "Anmeldung fehlgeschlagen: {detail}", "Accesso non riuscito: {detail}"),
+    "Joining the keychain failed: {detail}": ("No se pudo unir al llavero: {detail}", "Não foi possível aderir ao Porta-chaves: {detail}", "Impossible de rejoindre le trousseau : {detail}", "Beitritt zum Schlüsselbund fehlgeschlagen: {detail}", "Impossibile unirsi al portachiavi: {detail}"),
+    "Joined, but the sync failed: {detail}": ("Te uniste, pero falló la sincronización: {detail}", "Aderiu, mas a sincronização falhou: {detail}", "Trousseau rejoint, mais la synchronisation a échoué : {detail}", "Beigetreten, aber die Synchronisierung ist fehlgeschlagen: {detail}", "Unito, ma la sincronizzazione non è riuscita: {detail}"),
+    "Sync failed: {detail}": ("Falló la sincronización: {detail}", "A sincronização falhou: {detail}", "Échec de la synchronisation : {detail}", "Synchronisierung fehlgeschlagen: {detail}", "Sincronizzazione non riuscita: {detail}"),
+    "No device can let this computer join through this path.": ("Ningún dispositivo puede dar acceso a esta computadora por esta vía.", "Nenhum dispositivo pode dar acesso a este computador por esta via.", "Aucun appareil ne peut autoriser cet ordinateur par cette voie.", "Kein Gerät kann diesen Computer auf diesem Weg zulassen.", "Nessun dispositivo può autorizzare questo computer in questo modo."),
+    "iCloud didn't provide the keychain address, so the keychain can't be joined.": ("iCloud no dio la dirección del llavero, así que no se puede unir.", "O iCloud não forneceu o endereço do Porta-chaves, por isso não é possível aderir.", "iCloud n’a pas fourni l’adresse du trousseau ; impossible de le rejoindre.", "iCloud hat die Schlüsselbund-Adresse nicht geliefert, daher ist kein Beitritt möglich.", "iCloud non ha fornito l’indirizzo del portachiavi, quindi non è possibile unirsi."),
+    "Apple accepted the account and code, but iCloud didn't provide its service tokens, so the keychain can't be joined.": ("Apple aceptó la cuenta y el código, pero iCloud no entregó sus tokens de servicio, así que no se puede unir al llavero.", "A Apple aceitou a conta e o código, mas o iCloud não forneceu os tokens de serviço, por isso não é possível aderir ao Porta-chaves.", "Apple a accepté le compte et le code, mais iCloud n’a pas fourni ses jetons de service ; impossible de rejoindre le trousseau.", "Apple hat Account und Code akzeptiert, aber iCloud hat keine Diensttokens geliefert, daher ist kein Beitritt möglich.", "Apple ha accettato account e codice, ma iCloud non ha fornito i token di servizio, quindi non è possibile unirsi al portachiavi."),
+    "Another operation is already running.": ("Ya hay otra operación en curso.", "Já está a decorrer outra operação.", "Une autre opération est déjà en cours.", "Ein anderer Vorgang läuft bereits.", "È già in corso un’altra operazione."),
+    "Another sync is already running.": ("Ya hay otra sincronización en curso.", "Já está a decorrer outra sincronização.", "Une autre synchronisation est déjà en cours.", "Eine andere Synchronisierung läuft bereits.", "È già in corso un’altra sincronizzazione."),
+    "Sync skipped: {detail}": ("Sincronización omitida: {detail}", "Sincronização ignorada: {detail}", "Synchronisation ignorée : {detail}", "Synchronisierung übersprungen: {detail}", "Sincronizzazione saltata: {detail}"),
+    "You're not signed in. Open Apple Account to sign in.": ("No tienes la sesión iniciada. Abre Cuenta de Apple para iniciar sesión.", "Não tem sessão iniciada. Abra Conta Apple para iniciar sessão.", "Vous n’êtes pas connecté. Ouvrez Compte Apple pour vous connecter.", "Du bist nicht angemeldet. Öffne „Apple Account“, um dich anzumelden.", "Non hai eseguito l’accesso. Apri Account Apple per accedere."),
+    "This computer hasn't joined the keychain yet. Open Apple Account to finish.": ("Esta computadora todavía no se unió al llavero. Abre Cuenta de Apple para terminar.", "Este computador ainda não aderiu ao Porta-chaves. Abra Conta Apple para concluir.", "Cet ordinateur n’a pas encore rejoint le trousseau. Ouvrez Compte Apple pour terminer.", "Dieser Computer ist dem Schlüsselbund noch nicht beigetreten. Öffne „Apple Account“, um abzuschließen.", "Questo computer non si è ancora unito al portachiavi. Apri Account Apple per completare."),
+    "The passcode was empty, so no attempt was used.": ("El código estaba vacío, así que no se gastó ningún intento.", "O código estava vazio, por isso nenhuma tentativa foi gasta.", "Le code était vide ; aucune tentative n’a été consommée.", "Der Code war leer, daher wurde kein Versuch verbraucht.", "Il codice era vuoto, quindi non è stato usato alcun tentativo."),
+    "Couldn't refresh the iCloud session: {detail}": ("No se pudo renovar la sesión de iCloud: {detail}", "Não foi possível renovar a sessão do iCloud: {detail}", "Impossible de renouveler la session iCloud : {detail}", "Die iCloud-Sitzung konnte nicht erneuert werden: {detail}", "Impossibile rinnovare la sessione iCloud: {detail}"),
+    "Hide My Email is unavailable: {detail}": ("Ocultar mi correo no está disponible: {detail}", "Ocultar o meu e-mail não está disponível: {detail}", "Masquer mon adresse e-mail est indisponible : {detail}", "„E-Mail-Adresse verbergen“ ist nicht verfügbar: {detail}", "Nascondi la mia email non è disponibile: {detail}"),
+    "Couldn't fetch the iCloud service addresses: {detail}": ("No se pudieron obtener las direcciones de servicio de iCloud: {detail}", "Não foi possível obter os endereços de serviço do iCloud: {detail}", "Impossible d’obtenir les adresses de service iCloud : {detail}", "Die iCloud-Dienstadressen konnten nicht abgerufen werden: {detail}", "Impossibile ottenere gli indirizzi di servizio iCloud: {detail}"),
+    "Couldn't open the vault: {detail}": ("No se pudo abrir la bóveda: {detail}", "Não foi possível abrir o cofre: {detail}", "Impossible d’ouvrir le coffre : {detail}", "Der Tresor konnte nicht geöffnet werden: {detail}", "Impossibile aprire la cassaforte: {detail}"),
+})
+
+_ENGINE = [
+    (r"Already joined; syncing\.*", "Already joined; syncing…"),
+    (r"Discovering escrow bottles\.*", "Looking for your devices' recovery records…"),
+    (r"Multiple escrow bottles found.*", "Several devices can let this computer in. Pick one."),
+    (r"Using the only escrow bottle: (?P<device>.+)", "Using {device}, the only device available."),
+    (r"Joining iCloud Keychain will use the passcode of: (?P<device>.+)", "You'll need the passcode of {device}."),
+    (r"This is IRREVERSIBLE.*", "This step can't be undone: each wrong passcode uses one of about ten attempts."),
+    (r"Aborted.*no escrow attempt spent.*", "Stopped before using any recovery attempt. You're signed in but haven't joined the keychain yet."),
+    (r"Joined the keychain\. Synced (?P<n>\d+) credential\(s\)\.", "Joined the keychain. Decrypted {n} passwords."),
+    (r"Synced (?P<n>\d+) credential\(s\) into the vault\.", "Decrypted {n} passwords."),
+    (r"Signed in as (?P<user>.+)\.", "Signed in as {user}."),
+    (r"A 2FA code was sent to your trusted Apple devices for Hide My Email\.", "Hide My Email needs its own verification code."),
+    (r"Hide My Email requires a separate.*", "Hide My Email needs its own verification code."),
+    (r"A 2FA code was sent to .+\.", "Apple sent a verification code."),
+    (r"Cached (?P<n>\d+) Hide My Email alias\(es\)\.", "Saved {n} Hide My Email addresses."),
+    (r"iCloud token expired.*", "Session expired; signing in again with the saved password…"),
+    (r"sign-in failed: (?P<detail>.+)", "Sign-in failed: {detail}"),
+    (r"join failed: (?P<detail>.+)", "Joining the keychain failed: {detail}"),
+    (r"joined, but sync failed: (?P<detail>.+)", "Joined, but the sync failed: {detail}"),
+    (r"sync failed: (?P<detail>.+)", "Sync failed: {detail}"),
+    (r"no recoverable escrow bottle.*", "No device can let this computer join through this path."),
+    (r"no escrow URL cached.*", "iCloud didn't provide the keychain address, so the keychain can't be joined."),
+    (r"Apple ID and 2FA were accepted.*", "Apple accepted the account and code, but iCloud didn't provide its service tokens, so the keychain can't be joined."),
+    (r"busy - another sync is already running", "Another sync is already running."),
+    (r"skipped: (?P<detail>.+)", "Sync skipped: {detail}"),
+    (r"not signed in - run: icp login", "You're not signed in. Open Apple Account to sign in."),
+    (r"not joined to the keychain - run: icp login", "This computer hasn't joined the keychain yet. Open Apple Account to finish."),
+    (r"empty passcode.*", "The passcode was empty, so no attempt was used."),
+    (r"(?:could not refresh the iCloud token|iCloud login needed): (?P<detail>.+)", "Couldn't refresh the iCloud session: {detail}"),
+    (r"Warning: Hide My Email unavailable: (?P<detail>.+)", "Hide My Email is unavailable: {detail}"),
+    (r"Warning: could not fetch iCloud service URLs: (?P<detail>.+)", "Couldn't fetch the iCloud service addresses: {detail}"),
+    (r"could not open the vault: (?P<detail>.+)", "Couldn't open the vault: {detail}"),
+]
+_ENGINE = [(re.compile(pattern, re.DOTALL), template) for pattern, template in _ENGINE]
+
+
+def translate_engine(text: str, language: str) -> str:
+    """The window's wording for a message the icp engine printed; unknown text is unchanged."""
+    stripped = (text or "").strip()
+    for pattern, template in _ENGINE:
+        match = pattern.fullmatch(stripped)
+        if match:
+            return translate(template, language).format(**match.groupdict())
+    return text
 
 _ORDER = ("es", "pt", "fr", "de", "it")
 

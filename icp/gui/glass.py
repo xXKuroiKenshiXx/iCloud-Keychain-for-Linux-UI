@@ -261,7 +261,7 @@ class Controller(QObject):
         try:
             self.bridge.start(email, password)
         except RuntimeError as error:
-            self._set(error=str(error), stage="signin", busy=False)
+            self._set(error=self._t("Another operation is already running."), stage="signin", busy=False)
 
     @pyqtSlot()
     def sync(self) -> None:
@@ -430,7 +430,8 @@ class Controller(QObject):
         if kind == "status":
             text = str(event.get("message", ""))
             self._append_log("info", text)
-            self._set(status=text.splitlines()[0][:120] if text else self._status)
+            shown = i18n.translate_engine(text.splitlines()[0], self._language) if text else ""
+            self._set(status=shown[:160] if shown else self._status)
         elif kind == "prompt":
             self._prompt = {"kind": str(event.get("kind", "")), "message": str(event.get("message", "")),
                             "devices": list(event.get("devices") or [])}
@@ -442,7 +443,8 @@ class Controller(QObject):
         elif kind == "error":
             text = str(event.get("message", "Unknown error"))
             self._append_log("error", text)
-            self._set(error=friendly_error(text, self.bridge.anisette_url, self._t))
+            friendly = friendly_error(text, self.bridge.anisette_url, self._t)
+            self._set(error=i18n.translate_engine(friendly, self._language) if friendly == text else friendly)
             if "anisette" in text.lower() or "connection" in text.lower():
                 self.checkAnisette()
 
