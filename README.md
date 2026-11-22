@@ -39,6 +39,21 @@ python3 -m venv .venv && .venv/bin/pip install -e .
 source .venv/bin/activate
 ```
 
+## Desktop app (Qt)
+
+This fork adds a Qt 6 window for everything `icp` does in the terminal: sign-in, the 2FA
+code, choosing the escrow device, the irreversible passcode step, browsing passwords with
+their verification codes, and syncing.
+
+```
+.venv/bin/pip install -e '.[gui]'
+icp-gui          # or: icp gui
+```
+
+It uses the same session, vault, and `ICP_ANISETTE_URL` as the CLI, so both can be used
+interchangeably. On distributions that package PyQt6 (`python3-pyqt6`), create the venv with
+`--system-site-packages` instead of installing the extra.
+
 ## Sign in
 
 ```

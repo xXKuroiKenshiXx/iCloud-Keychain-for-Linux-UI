@@ -841,6 +841,16 @@ def cmd_logout(args) -> int:
     return 0
 
 
+def cmd_gui(args) -> int:
+    """Opens the Qt window; it runs the same login, join, and sync code as the CLI."""
+    try:
+        from ..gui.window import main as gui_main
+    except ImportError as e:
+        ui.err(f"the GUI needs PyQt6 ({e}); install it with: pip install -e '.[gui]'")
+        return 2
+    return gui_main(["--anisette", args.anisette] if args.anisette else [])
+
+
 def main(argv=None) -> int:
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     p = argparse.ArgumentParser(
@@ -892,6 +902,9 @@ def main(argv=None) -> int:
     dp.add_argument("--container", help="container id for `diag container`")
     dp.add_argument("--bundle", help="bundle id to use for `diag container`")
     dp.set_defaults(func=cmd_diag)
+
+    gp = sub.add_parser("gui", help="open the Qt window (needs: pip install -e '.[gui]')")
+    gp.set_defaults(func=cmd_gui)
 
     op = sub.add_parser("logout", help="clear the stored session")
     op.add_argument("--wipe-device", action="store_true", help="also remove the device identity")
